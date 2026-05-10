@@ -6,23 +6,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
-### Added
+## [0.1.0] - 2026-05-09
 
-- `FastBox<T>` class. Same `.value` accessor and helper-method surface as `Box<T>`, but without the runtime Proxy. No transparent forwarding, no callability, no `instanceof` trap. Construction is ~1.5x faster, primitive reads and writes are within noise of `Box`. Use when you only access state through `.value` and want minimum per-instance cost. Internal `BoxBase` class deduplicates the shared helper methods between `Box` and `FastBox`.
-
-## [0.0.1] - 2026-05-09
+First public release.
 
 ### Added
 
-- `Box<T>` class. A reactive container around `$state` with transparent property forwarding and stable method identity.
-- `box(value)` factory. Returns a `Boxed<T>` for ergonomic transparent forwarding in TypeScript.
-- `boxedMap(entries?)`, `boxedSet(values?)`. Box wrappers around `SvelteMap` and `SvelteSet` from `svelte/reactivity`.
-- Helpers on every Box: `get()`, `set()`, `del()` (only callable when `T` includes `undefined`), `snapshot()`, `eager()`, `toJSON()`.
-- 14 type-guard methods: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUndefined`, `isNull`, `isNullish`, `isPrimitive`, `isObject`, `isArray`, `isFunction`, `isMap`, `isSet`. Each narrows `T` via `this is Box<...>`.
-- Proxy traps: `apply`, `construct`, `get`, `set`, `has`, `deleteProperty`, `ownKeys`, `getOwnPropertyDescriptor`, `defineProperty`, `getPrototypeOf`, `preventExtensions`, `setPrototypeOf`. Defensive throws on `preventExtensions` and `setPrototypeOf` to protect the shared proxy target.
-- Types: `Boxed<T>`, `BoxedMap<K, V>`, `BoxedSet<T>`.
-- Test suite covering primitive, object, array, function, class, Map, and Set reactivity, plus snapshot, eager, JSON.stringify, structuredClone, Object.freeze rejection, defineProperty routing, deep-nested mutations, `$derived` integration, type-change reactivity, function closures, stable method identity, and cross-boundary passing.
-- GitHub Actions CI on push and PR. Publish workflow on GitHub release with version-tag verification and npm provenance.
+#### Reactive containers
 
-[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/IsaiahCoroama/svelte-box/releases/tag/v0.0.1
+- **`Box<T>`** class. A reactive container around `$state` with a runtime Proxy. Transparent property forwarding (`box.foo` reads `box.value.foo` for object boxes), callability for function values (`box(...)` invokes the inner function, `new box(...)` constructs the inner class), `instanceof Box` propagation through subclasses, and stable method identity for forwarded methods (`box.fn === box.fn`).
+- **`FastBox<T>`** class. Same `.value` surface and helper methods as `Box<T>` but without the runtime Proxy. No transparent forwarding, no callability, no `instanceof` trap. Construction is roughly 2.4x faster than `Box`, primitive `.value` reads and writes match the Baseline class-`$state`-field within noise.
+- **`BaseBox<T>`** class. Shared parent of `Box` and `FastBox`. Holds the reactive `value` field, helper methods, and type guards. Exported so call sites can accept either subclass with a single parameter type.
+- **`box(value)`** factory. Returns a `Boxed<T>` with the transparent forwarding shape projected into TypeScript.
+- **`fastbox(value)`** factory. Returns a `FastBoxed<T>` (a plain `FastBox<T>` alias).
+- **`boxedMap(entries?)`**, **`boxedSet(values?)`**. Box wrappers around `SvelteMap` and `SvelteSet` from `svelte/reactivity`. Map and Set methods forward through the proxy, so `boxedMap.set(k, v)` and `boxedSet.add(t)` work directly.
+- **`fastBoxedMap(entries?)`**, **`fastBoxedSet(values?)`**. FastBox variants. Reactivity is identical, but methods are reached through `.value` (`m.value.set(k, v)`, `s.value.add(t)`) since FastBox does not forward.
+
+#### Helper methods (on every Box, Box subclass, and FastBox)
+
+- `get()` / `set(v)` for functional-style access. Equivalent to `.value` read/write.
+- `del()` typed `del(this: undefined extends T ? this : never)` so `Box<number>.del()` is a TypeScript error while `Box<unknown>` and `Box<string | undefined>` accept it.
+- `snapshot()` returns a non-reactive deep clone. Wraps `$state.snapshot`.
+- `eager()` returns the current value bypassing async UI suspension. Wraps `$state.eager`.
+- `toJSON()` returns the inner value so `JSON.stringify(box)` produces useful output for object and array boxes.
+- 14 type guards: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUndefined`, `isNull`, `isNullish`, `isPrimitive`, `isObject`, `isArray`, `isFunction`, `isMap`, `isSet`. Each returns `this is this & BoxCell<X>` so narrowing inside an `if` block keeps the calling subclass type while refining only the `value` field.
+
+#### Public types
+
+- `Boxed<T> = Box<T> & ForwardShape<T>` for the proxy-driven transparent forwarding surface.
+- `FastBoxed<T> = FastBox<T>` for symmetry with `Boxed<T>`.
+- `BoxedMap<K, V> = Boxed<SvelteMap<K, V>>`, `BoxedSet<T> = Boxed<SvelteSet<T>>`.
+- `FastBoxedMap<K, V> = FastBoxed<SvelteMap<K, V>>`, `FastBoxedSet<T> = FastBoxed<SvelteSet<T>>`.
+- `BoxCell<T> = { value: T }` exported so consumers writing their own type guards on Box subclasses can use the same shape.
+- `PrimitiveType` for the standard `typeof` tag union.
+
+#### Proxy semantics
+
+- 12 traps wired: `apply`, `construct`, `get`, `set`, `has`, `deleteProperty`, `ownKeys`, `getOwnPropertyDescriptor`, `defineProperty`, `getPrototypeOf`, `preventExtensions`, `setPrototypeOf`.
+- `preventExtensions` and `setPrototypeOf` throw with explicit messages because the proxy target is shared across every Box at module scope. Allowing those would corrupt every other Box.
+- `defineProperty` routes to `self` or to the inner value, never to the shared target.
+- `getPrototypeOf` returns `Object.getPrototypeOf(self)` so `instanceof` works through the proxy and through subclasses.
+- Bound-method cache (`WeakMap<inner, Map<prop, { source, bound }>>`) at module scope guarantees `box.someMethod === box.someMethod`. Required for Svelte's keyed `{#each}` and consumer memoization.
+
+### Tooling and infrastructure
+
+- Tree-shakeable ESM. `boxedMap` / `boxedSet` and the FastBox variants live in their own module so importing only `Box` does not pull in `SvelteMap`/`SvelteSet`.
+- Hand-written `.d.ts` siblings (honored by `@sveltejs/package`) so polymorphic-this guards and intersection-typed `Boxed<T>` survive packaging.
+- 78-test browser-mode Vitest suite (`@vitest/browser-playwright`, headless Chromium) covering reactivity, proxy semantics, type guards, collection forwarding, `$derived` integration, snapshot, eager, JSON.stringify and structured-clone behaviour, cross-boundary passing through function and class layers, and FastBox no-forwarding asserts.
+- Three-way Baseline-vs-Box-vs-FastBox benchmark suite (`benchmarking/box.svelte.bench.ts`). 22 describe groups covering construction, primitive read/write, forwarded property and method access, type guards, snapshot, JSON.stringify, eager, collection operations, cross-boundary mutation, and bulk stress paths.
+- GitHub Actions CI (lint, type-check, build, test on every push and PR).
+- Scheduled benchmark workflow (Mondays 06:00 UTC, plus on-demand and on PRs touching `src/lib`); uploads `bench-results.json` as a CI artifact and posts a comment for regression review.
+- Publish workflow that re-runs the full test suite, verifies the release tag matches `package.json` version (with optional `v` prefix stripped), runs `prepack`, and publishes to npm with provenance attestations.
+- GitHub Pages deploy of the SvelteKit playground via `@sveltejs/adapter-static`. Gated on CI success on `master`. Live at <https://isaiahcoroama.github.io/svelte-box/>.
+
+### Documentation
+
+- README with table of contents, "Why does this exist" comparison against the four common Svelte 5 alternatives (`$state` wrapper object, class with `$state` field, accessor-pair class, `svelte/store` writable), Box-vs-FastBox feature matrix, when-to-use guidance, full API reference, patterns and pitfalls, classes-that-own-state guide, async semantics, performance section with three-way benchmark tables and direction-tagged cells (`Nx slower` / `Nx faster` / `match`), SSR and SvelteKit notes, debugging tips, bundle-size and tree-shaking notes, proxy traps reference, caveats, status and testing, maintenance and support, and an explicit Svelte 6 plan.
+- AGENTS.md with source layout, class hierarchy, type-safety details, build pipeline, and contributor expectations.
+- SvelteKit playground at `src/routes/` with `/`, `/box`, and `/fastbox` routes for side-by-side comparison.
+
+[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/IsaiahCoroama/svelte-box/releases/tag/v0.1.0
