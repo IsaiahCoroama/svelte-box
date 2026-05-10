@@ -1,6 +1,6 @@
 {
 	"name": "svelte-box",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "Tiny reactive container for Svelte 5. Wraps $state so it can be passed across functions, classes, and components without losing reactivity.",
 	"license": "MIT",
 	"author": "IsaiahCoroama <coroamaisaiah@gmail.com>",
