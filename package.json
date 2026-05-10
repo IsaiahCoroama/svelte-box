@@ -1,5 +1,5 @@
 {
-	"name": "svelte-box",
+	"name": "@coroama/svelte-box",
 	"version": "0.1.0",
 	"description": "Tiny reactive container for Svelte 5. Wraps $state so it can be passed across functions, classes, and components without losing reactivity.",
 	"license": "MIT",

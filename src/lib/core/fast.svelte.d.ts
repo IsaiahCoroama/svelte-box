@@ -30,7 +30,7 @@ export type FastBoxed<T> = FastBox<T>;
  *
  * @example
  * ```ts
- * import { FastBox } from 'svelte-box';
+ * import { FastBox } from '@coroama/svelte-box';
  *
  * const count = new FastBox(0);
  *

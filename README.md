@@ -3,7 +3,9 @@
 A tiny reactive container for Svelte 5. Wraps `$state` so you can pass a value across function, class, and component boundaries without losing reactivity.
 
 ```sh
-npm install svelte-box
+npm install @coroama/svelte-box
+# or
+bun add @coroama/svelte-box
 ```
 
 Peer dependency: `svelte ^5.0.0`. The compiled package runs anywhere a modern JS runtime does. Node 20.6 or newer is only needed if you are building from source.
@@ -118,7 +120,7 @@ Stores work but live in a separate world from runes, with their own subscription
 **Why Box.** Box is a single typed container that does what each of the above does, in one consistent shape. You get the ergonomic `.value` access of pattern 1, the named identity and methods of pattern 2, the encapsulation of pattern 3, and the cross-boundary semantics that prompted patterns 4 and earlier. On top of that, it adds transparent property forwarding for objects, callability for boxed functions, type guards, snapshot, and a `toJSON` hook. One mental model for every piece of state you need to pass around.
 
 ```js
-import { Box } from 'svelte-box';
+import { Box } from '@coroama/svelte-box';
 
 const counter = new Box(0);
 function increment(c) {
@@ -148,7 +150,7 @@ The library exports two reactive containers with the same `.value` accessor and 
 Use **Box** when you want any of the proxy-only behaviors. Use **FastBox** when you only ever access the value through `.value` and want the smallest possible per-instance cost. The two share the same helper API, so migrating between them is a search-and-replace on the constructor name.
 
 ```ts
-import { FastBox } from 'svelte-box';
+import { FastBox } from '@coroama/svelte-box';
 
 const count = new FastBox(0);
 
@@ -177,7 +179,7 @@ If you ever wrote `function increment(c) { c.value++ }` and had to wrap your val
 
 ```svelte
 <script>
-	import { Box } from 'svelte-box';
+	import { Box } from '@coroama/svelte-box';
 
 	const count = new Box(0);
 
@@ -198,7 +200,7 @@ If you ever wrote `function increment(c) { c.value++ }` and had to wrap your val
 The simplest case. Read and write through `.value`.
 
 ```js
-import { Box } from 'svelte-box';
+import { Box } from '@coroama/svelte-box';
 
 const name = new Box('Ada');
 name.value = 'Grace';
@@ -210,7 +212,7 @@ The `box(...)` factory returns a `Boxed<T>` type which forwards property access 
 
 ```svelte
 <script>
-	import { box } from 'svelte-box';
+	import { box } from '@coroama/svelte-box';
 
 	const user = box({ name: 'Ada', age: 36 });
 </script>
@@ -249,7 +251,7 @@ A regular `Map` or `Set` is not reactive. Svelte ships `SvelteMap` and `SvelteSe
 
 ```svelte
 <script>
-	import { boxedMap, boxedSet } from 'svelte-box';
+	import { boxedMap, boxedSet } from '@coroama/svelte-box';
 
 	const tags = boxedSet(['svelte', 'reactive']);
 	const scores = boxedMap([['ada', 100]]);
@@ -263,7 +265,7 @@ For the FastBox variant, use `fastBoxedMap` and `fastBoxedSet`. There is no Prox
 
 ```svelte
 <script>
-	import { fastBoxedMap, fastBoxedSet } from 'svelte-box';
+	import { fastBoxedMap, fastBoxedSet } from '@coroama/svelte-box';
 
 	const tags = fastBoxedSet(['svelte', 'reactive']);
 	const scores = fastBoxedMap([['ada', 100]]);
@@ -280,7 +282,7 @@ For the FastBox variant, use `fastBoxedMap` and `fastBoxedSet`. There is no Prox
 Every Box has guards that narrow `T` in a normal `if` block:
 
 ```ts
-import { Box } from 'svelte-box';
+import { Box } from '@coroama/svelte-box';
 
 const b: Box<unknown> = new Box(42);
 
@@ -332,7 +334,7 @@ s.value.add('y'); // reactive
 Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no `instanceof` propagation. The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`) and all 14 type guards work identically because they live on the shared `BaseBox` parent.
 
 ```ts
-import { FastBox, fastbox } from 'svelte-box';
+import { FastBox, fastbox } from '@coroama/svelte-box';
 
 const a = new FastBox(0);
 const b = fastbox(0); // identical, factory style
@@ -398,7 +400,7 @@ This is the use case Box was built for. You can put reactive state inside a clas
 A class field declared `count = $state(0)` is reactive on the instance: `someInstance.count++` works. But if you want to hand a single piece of that state to a child component, a primitive snapshot is not enough. You want the child to read and write the same live cell. Box gives you that handle.
 
 ```ts
-import { Box } from 'svelte-box';
+import { Box } from '@coroama/svelte-box';
 
 // Todo and User come from your own domain types
 type Todo = { id: string; text: string; done: boolean };
@@ -457,7 +459,7 @@ When a child only needs one piece of state, hand it just that piece. The child w
 ```svelte
 <!-- FilterPicker.svelte -->
 <script lang="ts">
-	import type { Box } from 'svelte-box';
+	import type { Box } from '@coroama/svelte-box';
 	let { filter }: { filter: Box<'all' | 'active' | 'done'> } = $props();
 </script>
 
@@ -475,7 +477,7 @@ When a child only needs one piece of state, hand it just that piece. The child w
 If a single piece of state has its own behavior, subclass `Box` and add methods. The proxy correctly preserves `instanceof` for the subclass.
 
 ```ts
-import { Box } from 'svelte-box';
+import { Box } from '@coroama/svelte-box';
 
 class Counter extends Box<number> {
 	increment() {
@@ -693,7 +695,7 @@ export async function load() {
 ```svelte
 <!-- +page.svelte -->
 <script lang="ts">
-	import { box } from 'svelte-box';
+	import { box } from '@coroama/svelte-box';
 	let { data } = $props();
 	const user = box(data.user); // box on the client
 </script>
@@ -761,7 +763,7 @@ For reference, the Box proxy implements: `apply`, `construct`, `get`, `set`, `ha
 
 ## Status and testing
 
-This is a solo-maintainer project. It follows semver: anything that breaks the public surface bumps the major. The public surface is what is documented in this README and exported from `'svelte-box'`.
+This is a solo-maintainer project. It follows semver: anything that breaks the public surface bumps the major. The public surface is what is documented in this README and exported from `'@coroama/svelte-box'`.
 
 The repository ships:
 
