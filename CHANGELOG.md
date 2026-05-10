@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html). The public surface for semver purposes is everything documented in the README and exported from `'svelte-box'`.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html). The public surface for semver purposes is everything documented in the README and exported from `'@coroama/svelte-box'`.
 
 ## [Unreleased]
 

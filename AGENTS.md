@@ -4,7 +4,7 @@ Instructions for AI coding agents working in this repository. Read this before m
 
 ## What this project is
 
-`svelte-box` is a tiny reactive container library for Svelte 5. It wraps `$state` so a value can be passed across function, class, and component boundaries without losing reactivity. Published to npm as a SvelteKit-packaged library.
+`svelte-box` is a tiny reactive container library for Svelte 5. It wraps `$state` so a value can be passed across function, class, and component boundaries without losing reactivity. Published to npm as `@coroama/svelte-box`, built via the SvelteKit packager. The repo and project keep the name `svelte-box`; only the npm import path is scoped.
 
 ## Commands
 
