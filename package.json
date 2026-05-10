@@ -1,0 +1,90 @@
+{
+	"name": "svelte-box",
+	"version": "0.0.1",
+	"description": "Tiny reactive container for Svelte 5. Wraps $state so it can be passed across functions, classes, and components without losing reactivity.",
+	"license": "MIT",
+	"author": "IsaiahCoroama <coroamaisaiah@gmail.com>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/IsaiahCoroama/svelte-box.git"
+	},
+	"bugs": {
+		"url": "https://github.com/IsaiahCoroama/svelte-box/issues"
+	},
+	"homepage": "https://github.com/IsaiahCoroama/svelte-box#readme",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build && npm run prepack",
+		"build:app": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"prepack": "svelte-kit sync && svelte-package && publint",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"test:unit": "vitest",
+		"test": "npm run test:unit -- --run",
+		"bench": "vitest bench --run",
+		"bench:json": "vitest bench --run --reporter=verbose --outputJson=bench-results.json"
+	},
+	"files": [
+		"dist",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*",
+		"!dist/**/*.bench.*"
+	],
+	"sideEffects": [
+		"**/*.css"
+	],
+	"svelte": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0"
+	},
+	"engines": {
+		"node": ">=20.6"
+	},
+	"devDependencies": {
+		"@eslint/compat": "^2.0.4",
+		"@eslint/js": "^10.0.1",
+		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/adapter-static": "^3.0.10",
+		"@sveltejs/kit": "^2.57.0",
+		"@sveltejs/package": "^2.5.7",
+		"@sveltejs/vite-plugin-svelte": "^7.0.0",
+		"@types/node": "^22",
+		"@vitest/browser-playwright": "^4.1.3",
+		"eslint": "^10.2.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.17.0",
+		"globals": "^17.4.0",
+		"playwright": "^1.59.1",
+		"prettier": "^3.8.1",
+		"prettier-plugin-svelte": "^3.5.1",
+		"publint": "^0.3.18",
+		"svelte": "^5.55.2",
+		"svelte-check": "^4.4.6",
+		"typescript": "^6.0.2",
+		"typescript-eslint": "^8.58.1",
+		"vite": "^8.0.7",
+		"vitest": "^4.1.3",
+		"vitest-browser-svelte": "^2.1.0"
+	},
+	"keywords": [
+		"svelte",
+		"svelte5",
+		"runes",
+		"state",
+		"reactive",
+		"box"
+	]
+}
