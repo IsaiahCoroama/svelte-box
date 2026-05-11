@@ -1,11 +1,12 @@
 name: Benchmarks
 
 on:
-  workflow_dispatch:
-  schedule:
-    # Weekly run on Mondays at 06:00 UTC so regressions are visible.
-    - cron: '0 6 * * 1'
   pull_request:
+    # Fire only when a PR closes against master. The job below filters to
+    # merged PRs (not just closed-without-merge) so the run reflects code
+    # that actually landed.
+    types: [closed]
+    branches: [master]
     paths:
       - 'src/lib/**'
       - 'benchmarking/**'
@@ -18,6 +19,7 @@ defaults:
 jobs:
   bench:
     name: Run benchmarks
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,8 +58,7 @@ jobs:
           path: bench-output.txt
           retention-days: 90
 
-      - name: Comment results on PR
-        if: github.event_name == 'pull_request'
+      - name: Comment results on merged PR
         uses: actions/github-script@v7
         with:
           script: |
@@ -69,7 +70,7 @@ jobs:
             const marker = '<!-- svelte-box-bench-comment -->';
             const body = [
               marker,
-              '## Benchmark results',
+              '## Post-merge benchmark results',
               '',
               'Compared against the realistic alternatives: raw `$state`, class with `$state` field, class accessor pair (`#cell` + get/set), and `$state({ value })` wrapper.',
               '',
