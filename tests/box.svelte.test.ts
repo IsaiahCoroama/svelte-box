@@ -276,6 +276,51 @@ describe('Box: function callability', () => {
         // the runtime check that calling such a box throws.
         expect(() => (b as unknown as () => void)()).toThrow(TypeError);
     });
+
+    it('preserves a bound function’s pre-bound this through the apply trap', () => {
+        const ctx = { tag: 'bound-ctx' };
+        function rawFn(this: { tag: string }, suffix: string) {
+            return `${this.tag}/${suffix}`;
+        }
+        const bound = rawFn.bind(ctx);
+        const f = box(bound);
+
+        // .call(null, ...) on a hard-bound function ignores the new this. The
+        // apply trap forwards Reflect.apply(inner, thisArg, args), but the
+        // inner function is already bound, so the result is "bound-ctx/x"
+        // regardless of how the box was called.
+        expect((f as unknown as (s: string) => string).call(null, 'x')).toBe('bound-ctx/x');
+    });
+
+    it('passes thisArg through for unbound function values (documented contract)', () => {
+        // Documents the apply trap's `thisArg` forwarding for non-bound inner
+        // functions: whoever called the box decides `this`. Use `.bind` on
+        // the inner function if you need a fixed `this`.
+        function rawFn(this: { tag: string }) {
+            return this?.tag ?? 'no-this';
+        }
+        const f = box(rawFn);
+        const ctx = { tag: 'caller' };
+        expect((f as unknown as { call: (t: unknown) => string }).call(ctx)).toBe('caller');
+    });
+});
+
+describe('Box: primitive inner values', () => {
+    it('does not forward primitive prototype methods', () => {
+        // Documents the d.ts contract: primitives are not object-like, so the
+        // proxy returns undefined for property reads other than Box's own
+        // surface. Use `box.value.toUpperCase()` instead.
+        const s = box('hi');
+        expect((s as unknown as { toUpperCase?: () => string }).toUpperCase).toBeUndefined();
+        expect(s.value.toUpperCase()).toBe('HI');
+    });
+
+    it('returns undefined for any inner-key read on a number box', () => {
+        const n = box(42);
+        expect((n as unknown as { toFixed?: () => string }).toFixed).toBeUndefined();
+        // Box's own helpers still resolve.
+        expect(n.isNumber()).toBe(true);
+    });
 });
 
 describe('Box: class instance forwarding', () => {
