@@ -1,14 +1,17 @@
 import { BaseBox } from './base.svelte.js';
 import { isFunction, isObjectLike } from './utils.js';
 
-// Box helper method names that commonly collide with collection APIs
-// (Map.get, Map.set, Set.delete, etc.). For these, the inner value's method
-// takes priority so wrapping a Map/Set still works ergonomically.
+// Box helper method names that commonly collide with collection APIs.
+// `get` and `set` are the only Box helpers that share a name with a
+// reactive-collection method (Map.get/set). For these, the inner value's
+// method takes priority so wrapping a Map/Set still works ergonomically.
+// `Set.delete` is not listed because Box has no `delete` helper, so the
+// normal forwarding path already routes through the inner Set.
 //
 // String-keyed only. If a future Box helper is renamed to a Symbol, this
 // lookup misses and the inner method will not be preferred. Add the new
 // key here if that ever happens.
-const FORWARD_FIRST = new Set(['get', 'set', 'del']);
+const FORWARD_FIRST = new Set(['get', 'set']);
 
 // Shared dummy proxy target. A function so the proxy is callable and
 // constructable when the inner value is a function or class. We never mutate
@@ -66,38 +69,41 @@ export class Box extends BaseBox {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const self = this;
 
-        // Snapshot of keys that belong to Box (or any subclass) at construction
-        // time. We walk the prototype chain so we catch class fields, prototype
-        // methods, and any accessors Svelte installs for $state. We stop
-        // before Object.prototype so toString, hasOwnProperty, and friends
-        // still forward to the inner value.
+        // Cache of "is this key owned by Box/subclass?" answers. Seeded by
+        // walking the prototype chain once at construction so we catch class
+        // fields, prototype methods, and any accessors Svelte installs for
+        // $state. We stop before Object.prototype so toString,
+        // hasOwnProperty, and friends still forward to the inner value.
+        //
+        // Negatives are cached on first miss so forwarded property reads
+        // (`bx.a`, `bx.length`) do not re-walk the prototype chain every
+        // time. Both positives and negatives are cached for the lifetime
+        // of the Box: methods added or removed from the prototype after
+        // the first read of a given key will not be reflected. This is the
+        // documented trade-off for keeping the forwarding hot path cheap.
         // eslint-disable-next-line svelte/prefer-svelte-reactivity
-        const boxKeys = new Set();
+        const ownCache = new Map();
         {
             let proto = self;
             while (proto && proto !== Object.prototype) {
-                for (const k of Reflect.ownKeys(proto)) boxKeys.add(k);
+                for (const k of Reflect.ownKeys(proto)) ownCache.set(k, true);
                 proto = Object.getPrototypeOf(proto);
             }
         }
 
-        // On a cache miss, re-walk the prototype chain. This handles the case
-        // where someone adds methods to Box.prototype or a subclass prototype
-        // after the Box was constructed (e.g. mixins, monkey-patching).
-        //
-        // Caveat: positive results are cached for the lifetime of the Box.
-        // Removing a method from the prototype after it has been read once
-        // will not be reflected here. Adding new methods works fine.
         const isOwn = (prop) => {
-            if (boxKeys.has(prop)) return true;
+            const cached = ownCache.get(prop);
+            if (cached !== undefined) return cached;
+
             let proto = Object.getPrototypeOf(self);
             while (proto && proto !== Object.prototype) {
                 if (Object.prototype.hasOwnProperty.call(proto, prop)) {
-                    boxKeys.add(prop);
+                    ownCache.set(prop, true);
                     return true;
                 }
                 proto = Object.getPrototypeOf(proto);
             }
+            ownCache.set(prop, false);
             return false;
         };
 
