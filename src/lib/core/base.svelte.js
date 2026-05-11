@@ -16,85 +16,85 @@ import { isObjectLike } from './utils.js';
  * them on the box (`box.get()`) or wrap them yourself (`() => box.value`).
  */
 export class BaseBox {
-	value = $state();
+    value = $state();
 
-	constructor(initial) {
-		this.value = initial;
-	}
+    constructor(initial) {
+        this.value = initial;
+    }
 
-	get() {
-		return this.value;
-	}
-	set(value) {
-		this.value = value;
-	}
-	// The `Box<number>` (T excludes undefined) call-site error is enforced at
-	// the TypeScript level only, via the polymorphic `this` constraint in the
-	// sibling `.d.ts`. JS callers and `as any` casts can still reach this
-	// body and break the value type.
-	del() {
-		this.value = /** @type {any} */ (undefined);
-	}
+    get() {
+        return this.value;
+    }
+    set(value) {
+        this.value = value;
+    }
+    // The `Box<number>` (T excludes undefined) call-site error is enforced at
+    // the TypeScript level only, via the polymorphic `this` constraint in the
+    // sibling `.d.ts`. JS callers and `as any` casts can still reach this
+    // body and break the value type.
+    del() {
+        this.value = /** @type {any} */ (undefined);
+    }
 
-	snapshot() {
-		return $state.snapshot(this.value);
-	}
-	eager() {
-		return $state.eager(this.value);
-	}
+    snapshot() {
+        return $state.snapshot(this.value);
+    }
+    eager() {
+        return $state.eager(this.value);
+    }
 
-	// Without `toJSON`, `JSON.stringify(box)` returns the wrong thing for
-	// both subclasses. Box: the proxy target is a function, so the result
-	// is `undefined`. FastBox: serialization sees the class instance and
-	// produces `'{"value":...}'` instead of the inner value. Returning
-	// `this.value` makes both serialize as if the caller had passed
-	// `box.value` directly.
-	toJSON() {
-		return this.value;
-	}
+    // Without `toJSON`, `JSON.stringify(box)` returns the wrong thing for
+    // both subclasses. Box: the proxy target is a function, so the result
+    // is `undefined`. FastBox: serialization sees the class instance and
+    // produces `'{"value":...}'` instead of the inner value. Returning
+    // `this.value` makes both serialize as if the caller had passed
+    // `box.value` directly.
+    toJSON() {
+        return this.value;
+    }
 
-	isBoolean() {
-		return typeof this.value === 'boolean';
-	}
-	isNumber() {
-		return typeof this.value === 'number';
-	}
-	isString() {
-		return typeof this.value === 'string';
-	}
-	isBigInt() {
-		return typeof this.value === 'bigint';
-	}
-	isSymbol() {
-		return typeof this.value === 'symbol';
-	}
-	isUndefined() {
-		return this.value === undefined;
-	}
-	isNull() {
-		return this.value === null;
-	}
+    isBoolean() {
+        return typeof this.value === 'boolean';
+    }
+    isNumber() {
+        return typeof this.value === 'number';
+    }
+    isString() {
+        return typeof this.value === 'string';
+    }
+    isBigInt() {
+        return typeof this.value === 'bigint';
+    }
+    isSymbol() {
+        return typeof this.value === 'symbol';
+    }
+    isUndefined() {
+        return this.value === undefined;
+    }
+    isNull() {
+        return this.value === null;
+    }
 
-	isNullish() {
-		return this.value == null;
-	}
-	isPrimitive() {
-		return !isObjectLike(this.value);
-	}
+    isNullish() {
+        return this.value == null;
+    }
+    isPrimitive() {
+        return !isObjectLike(this.value);
+    }
 
-	isObject() {
-		return this.value !== null && typeof this.value === 'object';
-	}
-	isArray() {
-		return Array.isArray(this.value);
-	}
-	isFunction() {
-		return typeof this.value === 'function';
-	}
-	isMap() {
-		return this.value instanceof Map;
-	}
-	isSet() {
-		return this.value instanceof Set;
-	}
+    isObject() {
+        return this.value !== null && typeof this.value === 'object';
+    }
+    isArray() {
+        return Array.isArray(this.value);
+    }
+    isFunction() {
+        return typeof this.value === 'function';
+    }
+    isMap() {
+        return this.value instanceof Map;
+    }
+    isSet() {
+        return this.value instanceof Set;
+    }
 }

@@ -42,194 +42,194 @@ const bindCache = new WeakMap();
  * @param {unknown} source the freshly-read value of `inner[prop]`
  */
 function bindForwarded(inner, prop, source) {
-	if (!isFunction(source)) return source;
+    if (!isFunction(source)) return source;
 
-	let perInner = bindCache.get(inner);
-	if (!perInner) {
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity
-		perInner = new Map();
-		bindCache.set(inner, perInner);
-	}
+    let perInner = bindCache.get(inner);
+    if (!perInner) {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        perInner = new Map();
+        bindCache.set(inner, perInner);
+    }
 
-	const entry = perInner.get(prop);
-	if (entry && entry.source === source) return entry.bound;
+    const entry = perInner.get(prop);
+    if (entry && entry.source === source) return entry.bound;
 
-	const bound = source.bind(inner);
-	perInner.set(prop, { source, bound });
-	return bound;
+    const bound = source.bind(inner);
+    perInner.set(prop, { source, bound });
+    return bound;
 }
 
 export class Box extends BaseBox {
-	constructor(initial) {
-		super(initial);
+    constructor(initial) {
+        super(initial);
 
-		// eslint-disable-next-line @typescript-eslint/no-this-alias
-		const self = this;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const self = this;
 
-		// Snapshot of keys that belong to Box (or any subclass) at construction
-		// time. We walk the prototype chain so we catch class fields, prototype
-		// methods, and any accessors Svelte installs for $state. We stop
-		// before Object.prototype so toString, hasOwnProperty, and friends
-		// still forward to the inner value.
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity
-		const boxKeys = new Set();
-		{
-			let proto = self;
-			while (proto && proto !== Object.prototype) {
-				for (const k of Reflect.ownKeys(proto)) boxKeys.add(k);
-				proto = Object.getPrototypeOf(proto);
-			}
-		}
+        // Snapshot of keys that belong to Box (or any subclass) at construction
+        // time. We walk the prototype chain so we catch class fields, prototype
+        // methods, and any accessors Svelte installs for $state. We stop
+        // before Object.prototype so toString, hasOwnProperty, and friends
+        // still forward to the inner value.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const boxKeys = new Set();
+        {
+            let proto = self;
+            while (proto && proto !== Object.prototype) {
+                for (const k of Reflect.ownKeys(proto)) boxKeys.add(k);
+                proto = Object.getPrototypeOf(proto);
+            }
+        }
 
-		// On a cache miss, re-walk the prototype chain. This handles the case
-		// where someone adds methods to Box.prototype or a subclass prototype
-		// after the Box was constructed (e.g. mixins, monkey-patching).
-		//
-		// Caveat: positive results are cached for the lifetime of the Box.
-		// Removing a method from the prototype after it has been read once
-		// will not be reflected here. Adding new methods works fine.
-		const isOwn = (prop) => {
-			if (boxKeys.has(prop)) return true;
-			let proto = Object.getPrototypeOf(self);
-			while (proto && proto !== Object.prototype) {
-				if (Object.prototype.hasOwnProperty.call(proto, prop)) {
-					boxKeys.add(prop);
-					return true;
-				}
-				proto = Object.getPrototypeOf(proto);
-			}
-			return false;
-		};
+        // On a cache miss, re-walk the prototype chain. This handles the case
+        // where someone adds methods to Box.prototype or a subclass prototype
+        // after the Box was constructed (e.g. mixins, monkey-patching).
+        //
+        // Caveat: positive results are cached for the lifetime of the Box.
+        // Removing a method from the prototype after it has been read once
+        // will not be reflected here. Adding new methods works fine.
+        const isOwn = (prop) => {
+            if (boxKeys.has(prop)) return true;
+            let proto = Object.getPrototypeOf(self);
+            while (proto && proto !== Object.prototype) {
+                if (Object.prototype.hasOwnProperty.call(proto, prop)) {
+                    boxKeys.add(prop);
+                    return true;
+                }
+                proto = Object.getPrototypeOf(proto);
+            }
+            return false;
+        };
 
-		return new Proxy(PROXY_TARGET, {
-			apply(_t, thisArg, args) {
-				const inner = self.value;
-				if (!isFunction(inner)) {
-					throw new TypeError('Box value is not a function');
-				}
-				return Reflect.apply(inner, thisArg, args);
-			},
-			construct(_t, args, newTarget) {
-				const inner = self.value;
-				if (!isFunction(inner)) {
-					throw new TypeError('Box value is not a constructor');
-				}
-				return Reflect.construct(inner, args, newTarget);
-			},
-			get(_t, prop) {
-				// Collision-prone names: prefer inner's method when it's callable
-				// so e.g. `boxedMap.set(k, v)` invokes SvelteMap.set instead of
-				// Box's generic setter.
-				if (FORWARD_FIRST.has(prop)) {
-					const inner = self.value;
-					if (isObjectLike(inner) && typeof inner[prop] === 'function') {
-						return bindForwarded(inner, prop, inner[prop]);
-					}
-				}
+        return new Proxy(PROXY_TARGET, {
+            apply(_t, thisArg, args) {
+                const inner = self.value;
+                if (!isFunction(inner)) {
+                    throw new TypeError('Box value is not a function');
+                }
+                return Reflect.apply(inner, thisArg, args);
+            },
+            construct(_t, args, newTarget) {
+                const inner = self.value;
+                if (!isFunction(inner)) {
+                    throw new TypeError('Box value is not a constructor');
+                }
+                return Reflect.construct(inner, args, newTarget);
+            },
+            get(_t, prop) {
+                // Collision-prone names: prefer inner's method when it's callable
+                // so e.g. `boxedMap.set(k, v)` invokes SvelteMap.set instead of
+                // Box's generic setter.
+                if (FORWARD_FIRST.has(prop)) {
+                    const inner = self.value;
+                    if (isObjectLike(inner) && typeof inner[prop] === 'function') {
+                        return bindForwarded(inner, prop, inner[prop]);
+                    }
+                }
 
-				if (isOwn(prop)) return self[prop];
+                if (isOwn(prop)) return self[prop];
 
-				const inner = self.value;
-				if (!isObjectLike(inner)) return undefined;
+                const inner = self.value;
+                if (!isObjectLike(inner)) return undefined;
 
-				return bindForwarded(inner, prop, inner[prop]);
-			},
-			set(_t, prop, newValue) {
-				if (isOwn(prop)) {
-					self[prop] = newValue;
-					return true;
-				}
+                return bindForwarded(inner, prop, inner[prop]);
+            },
+            set(_t, prop, newValue) {
+                if (isOwn(prop)) {
+                    self[prop] = newValue;
+                    return true;
+                }
 
-				const inner = self.value;
-				if (!isObjectLike(inner)) return false;
+                const inner = self.value;
+                if (!isObjectLike(inner)) return false;
 
-				inner[prop] = newValue;
-				return true;
-			},
-			deleteProperty(_t, prop) {
-				if (isOwn(prop)) {
-					throw new TypeError(
-						`Cannot delete Box's own property '${String(prop)}'. ` +
-							`Use 'box.value = undefined' to clear (when T allows undefined), ` +
-							`or assign a different value through 'box.value = ...'.`
-					);
-				}
+                inner[prop] = newValue;
+                return true;
+            },
+            deleteProperty(_t, prop) {
+                if (isOwn(prop)) {
+                    throw new TypeError(
+                        `Cannot delete Box's own property '${String(prop)}'. ` +
+                            `Use 'box.value = undefined' to clear (when T allows undefined), ` +
+                            `or assign a different value through 'box.value = ...'.`
+                    );
+                }
 
-				const inner = self.value;
-				if (!isObjectLike(inner)) return false;
+                const inner = self.value;
+                if (!isObjectLike(inner)) return false;
 
-				return Reflect.deleteProperty(inner, prop);
-			},
-			has(t, prop) {
-				// Invariant: must report true for non-configurable own keys of the
-				// target (e.g. `prototype` on a function target).
-				const td = Reflect.getOwnPropertyDescriptor(t, prop);
-				if (td && !td.configurable) return true;
+                return Reflect.deleteProperty(inner, prop);
+            },
+            has(t, prop) {
+                // Invariant: must report true for non-configurable own keys of the
+                // target (e.g. `prototype` on a function target).
+                const td = Reflect.getOwnPropertyDescriptor(t, prop);
+                if (td && !td.configurable) return true;
 
-				if (isOwn(prop)) return true;
+                if (isOwn(prop)) return true;
 
-				const inner = self.value;
-				return isObjectLike(inner) && prop in inner;
-			},
-			ownKeys(t) {
-				const inner = self.value;
-				const keys = isObjectLike(inner) ? Reflect.ownKeys(inner).slice() : [];
+                const inner = self.value;
+                return isObjectLike(inner) && prop in inner;
+            },
+            ownKeys(t) {
+                const inner = self.value;
+                const keys = isObjectLike(inner) ? Reflect.ownKeys(inner).slice() : [];
 
-				for (const k of Reflect.ownKeys(t)) {
-					const d = Reflect.getOwnPropertyDescriptor(t, k);
-					if (d && !d.configurable && !keys.includes(k)) keys.push(k);
-				}
-				return keys;
-			},
-			getOwnPropertyDescriptor(t, prop) {
-				const td = Reflect.getOwnPropertyDescriptor(t, prop);
-				if (td && !td.configurable) return td;
+                for (const k of Reflect.ownKeys(t)) {
+                    const d = Reflect.getOwnPropertyDescriptor(t, k);
+                    if (d && !d.configurable && !keys.includes(k)) keys.push(k);
+                }
+                return keys;
+            },
+            getOwnPropertyDescriptor(t, prop) {
+                const td = Reflect.getOwnPropertyDescriptor(t, prop);
+                if (td && !td.configurable) return td;
 
-				if (isOwn(prop)) {
-					return Reflect.getOwnPropertyDescriptor(self, prop);
-				}
+                if (isOwn(prop)) {
+                    return Reflect.getOwnPropertyDescriptor(self, prop);
+                }
 
-				const inner = self.value;
-				if (!isObjectLike(inner)) return undefined;
+                const inner = self.value;
+                if (!isObjectLike(inner)) return undefined;
 
-				const desc = Reflect.getOwnPropertyDescriptor(inner, prop);
-				return desc ? { ...desc, configurable: true } : undefined;
-			},
-			defineProperty(_t, prop, desc) {
-				// Route definitions to self or inner, never to the shared target.
-				if (isOwn(prop)) {
-					return Reflect.defineProperty(self, prop, desc);
-				}
-				const inner = self.value;
-				if (!isObjectLike(inner)) return false;
-				return Reflect.defineProperty(inner, prop, desc);
-			},
-			preventExtensions() {
-				// The shared target must stay extensible so other Boxes are not
-				// affected. Throw with a clear message rather than letting strict
-				// mode surface the generic "trap returned falsish" TypeError.
-				throw new TypeError(
-					'Box does not support being made non-extensible. Apply ' +
-						'Object.preventExtensions or Object.freeze to box.value instead.'
-				);
-			},
-			setPrototypeOf() {
-				// Prevent reassigning the proxy's prototype, which would either
-				// mutate the shared target or violate proxy invariants. If you
-				// need to change the prototype of the inner value, do it on
-				// box.value directly.
-				throw new TypeError(
-					'Box does not support changing its prototype. Set the prototype ' +
-						'of box.value directly if you need to change the inner value.'
-				);
-			},
-			getPrototypeOf() {
-				return Object.getPrototypeOf(self);
-			}
-		});
-	}
+                const desc = Reflect.getOwnPropertyDescriptor(inner, prop);
+                return desc ? { ...desc, configurable: true } : undefined;
+            },
+            defineProperty(_t, prop, desc) {
+                // Route definitions to self or inner, never to the shared target.
+                if (isOwn(prop)) {
+                    return Reflect.defineProperty(self, prop, desc);
+                }
+                const inner = self.value;
+                if (!isObjectLike(inner)) return false;
+                return Reflect.defineProperty(inner, prop, desc);
+            },
+            preventExtensions() {
+                // The shared target must stay extensible so other Boxes are not
+                // affected. Throw with a clear message rather than letting strict
+                // mode surface the generic "trap returned falsish" TypeError.
+                throw new TypeError(
+                    'Box does not support being made non-extensible. Apply ' +
+                        'Object.preventExtensions or Object.freeze to box.value instead.'
+                );
+            },
+            setPrototypeOf() {
+                // Prevent reassigning the proxy's prototype, which would either
+                // mutate the shared target or violate proxy invariants. If you
+                // need to change the prototype of the inner value, do it on
+                // box.value directly.
+                throw new TypeError(
+                    'Box does not support changing its prototype. Set the prototype ' +
+                        'of box.value directly if you need to change the inner value.'
+                );
+            },
+            getPrototypeOf() {
+                return Object.getPrototypeOf(self);
+            }
+        });
+    }
 }
 
 export function box(initial) {
-	return new Box(initial);
+    return new Box(initial);
 }

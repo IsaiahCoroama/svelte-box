@@ -4,5 +4,5 @@ import { BaseBox } from './base.svelte.js';
 export class FastBox extends BaseBox {}
 
 export function fastbox(initial) {
-	return new FastBox(initial);
+    return new FastBox(initial);
 }

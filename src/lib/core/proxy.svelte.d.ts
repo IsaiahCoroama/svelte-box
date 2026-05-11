@@ -6,10 +6,10 @@ import { BaseBox } from './base.svelte.js';
  * primitives keep the Box surface only.
  */
 type ForwardShape<T> = T extends (...args: infer A) => infer R
-	? (...args: A) => R
-	: T extends object
-		? T
-		: unknown;
+    ? (...args: A) => R
+    : T extends object
+      ? T
+      : unknown;
 
 /**
  * The transparent type of a {@link Box}. When `T` is an object, function, or
