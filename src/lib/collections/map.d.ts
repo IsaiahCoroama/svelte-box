@@ -17,6 +17,11 @@ export type BoxedMap<K, V> = Boxed<SvelteMap<K, V>>;
  * `m.value.set(k, v)`, `m.value.get(k)`, `m.value.delete(k)`. The Box
  * reference can still be replaced wholesale with
  * `m.value = new SvelteMap(...)`.
+ *
+ * Calling `m.set(k, v)` directly is a destructive trap: `FastBox.set`
+ * takes a single argument and overwrites the whole `.value` with `k`,
+ * dropping `v`. Always go through `m.value.set(k, v)` instead. Same for
+ * `m.value.get(k)` over `m.get(k)`.
  */
 export type FastBoxedMap<K, V> = FastBoxed<SvelteMap<K, V>>;
 

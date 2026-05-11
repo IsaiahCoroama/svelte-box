@@ -14,6 +14,11 @@ export type BoxedSet<T> = Boxed<SvelteSet<T>>;
  * `clear`. No Proxy. Reach set methods through `.value`: write
  * `s.value.add(t)`, `s.value.has(t)`, etc. The Box reference can be
  * replaced with `s.value = new SvelteSet(...)`.
+ *
+ * `FastBox` does not forward, so any inner-method names that collide
+ * with `BaseBox` helpers stay destructive. `FastBoxedSet` is safer than
+ * `FastBoxedMap` (Set has no `set` or `get`), but the same rule applies:
+ * always go through `.value` for set methods.
  */
 export type FastBoxedSet<T> = FastBoxed<SvelteSet<T>>;
 

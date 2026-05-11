@@ -30,10 +30,10 @@ export type FastBoxed<T> = FastBox<T>;
  * Reactive container with the same `.value` surface and helper methods as
  * {@link BaseBox} (and therefore {@link Box}), but without a runtime
  * Proxy. No transparent property forwarding, no callability for function
- * values, no bound-method cache, no `instanceof` trap. The result is a
- * plain class with a single reactive field and a fixed set of methods.
- * Per-operation overhead is lower and construction is several times
- * faster than `Box`.
+ * values, no bound-method cache, no proxy mediation of `instanceof` (it
+ * uses plain prototype-chain checks). The result is a plain class with a
+ * single reactive field and a fixed set of methods. Per-operation overhead
+ * is lower and construction is several times faster than `Box`.
  *
  * Use `FastBox` when:
  * - You only read and write through `.value`.
@@ -44,6 +44,14 @@ export type FastBoxed<T> = FastBox<T>;
  * Use `Box` when you need any of the proxy-driven behaviors. Migration
  * between the two is mechanical: the helper methods and type guards have
  * the same names and signatures.
+ *
+ * @remarks
+ * Helper-name collisions with inner methods are destructive on `FastBox`.
+ * Because there is no forwarding proxy, calling `fb.set(k, v)` on a
+ * `FastBox<Map<K, V>>` invokes `BaseBox.set(value)` and overwrites
+ * `fb.value` with `k` (the second argument is dropped). Always reach
+ * inner Map/Set methods through `.value`: `fb.value.set(k, v)`. This
+ * is one of the reasons {@link Box} exists.
  *
  * Prefer the {@link fastbox} factory over `new FastBox(...)` for symmetry
  * with the `box` / `boxedMap` / `boxedSet` factories and so call sites
