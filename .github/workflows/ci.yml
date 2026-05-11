@@ -10,8 +10,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    # Decides whether the rest of the pipeline runs. Docs-only changes
+    # (markdown, LICENSE, .gitignore, sibling workflows) set `source` to
+    # false and the heavy jobs skip. Changes to ci.yml itself are NOT in
+    # the ignore list: editing the workflow always re-runs it.
+    name: Detect source changes
+    runs-on: ubuntu-latest
+    outputs:
+      source: ${{ steps.filter.outputs.source }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # `source` is true when the diff includes at least one path that
+          # is NOT in the excluded list below. Order does not matter for
+          # picomatch negation.
+          filters: |
+            source:
+              - '!**/*.md'
+              - '!LICENSE'
+              - '!.gitignore'
+              - '!.github/workflows/bench.yml'
+              - '!.github/workflows/pages.yml'
+              - '!.github/workflows/publish.yml'
+
   lint:
     name: Lint and format check
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +57,8 @@ jobs:
 
   test:
     name: Test (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -78,6 +109,8 @@ jobs:
 
   build:
     name: Build package
+    needs: changes
+    if: needs.changes.outputs.source == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -92,22 +125,35 @@ jobs:
 
   ci-all-greens:
     name: ci-all-greens
-    # Branch-protection hook: a single required check that passes only when
-    # every other job (including all test matrix legs) succeeds. `if: always()`
-    # forces this job to run even when an upstream job fails, so the failure
-    # surfaces here instead of being skipped.
+    # Branch-protection hook: a single required check that passes when
+    # every upstream job either succeeded or was deliberately skipped
+    # because no source files changed. `if: always()` forces this job to
+    # run even when an upstream job fails, so the failure surfaces here
+    # instead of being silently skipped.
     if: always()
-    needs: [lint, test, build]
+    needs: [changes, lint, test, build]
     runs-on: ubuntu-latest
     steps:
-      - name: Verify all required jobs succeeded
+      - name: Verify all required jobs passed or were skipped
         env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
           LINT_RESULT: ${{ needs.lint.result }}
           TEST_RESULT: ${{ needs.test.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         run: |
-          echo "lint=$LINT_RESULT test=$TEST_RESULT build=$BUILD_RESULT"
-          if [[ "$LINT_RESULT" != "success" || "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "success" ]]; then
-            echo "One or more jobs failed."
+          echo "changes=$CHANGES_RESULT lint=$LINT_RESULT test=$TEST_RESULT build=$BUILD_RESULT"
+          # The detector must always succeed. If it failed, we cannot tell
+          # whether the pipeline was correctly skipped.
+          if [[ "$CHANGES_RESULT" != "success" ]]; then
+            echo "changes job did not succeed."
             exit 1
           fi
+          # lint/test/build each pass either by succeeding or by being
+          # skipped (docs-only run). Anything else (failure, cancelled) is
+          # an aggregator failure.
+          for r in "$LINT_RESULT" "$TEST_RESULT" "$BUILD_RESULT"; do
+            if [[ "$r" != "success" && "$r" != "skipped" ]]; then
+              echo "Required job did not pass (got $r)."
+              exit 1
+            fi
+          done
