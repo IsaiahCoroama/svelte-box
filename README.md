@@ -1,5 +1,11 @@
 # svelte-box
 
+[![npm version](https://img.shields.io/npm/v/@coroama/svelte-box.svg?logo=npm&label=npm)](https://www.npmjs.com/package/@coroama/svelte-box)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@coroama/svelte-box?label=min%2Bgzip)](https://bundlephobia.com/package/@coroama/svelte-box)
+[![CI](https://github.com/IsaiahCoroama/svelte-box/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/IsaiahCoroama/svelte-box/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@coroama/svelte-box.svg)](LICENSE)
+[![live demo](https://img.shields.io/badge/demo-live-blue?logo=svelte)](https://isaiahcoroama.github.io/svelte-box/)
+
 A tiny reactive container for Svelte 5. Wraps `$state` so you can pass a value across function, class, and component boundaries without losing reactivity.
 
 ```sh
@@ -19,19 +25,19 @@ Peer dependency: `svelte ^5.0.0`. The compiled package runs anywhere a modern JS
 - [When to use Box vs raw `$state`](#when-to-use-box-vs-raw-state)
 - [Quick start](#quick-start)
 - [Usage](#usage)
-  - [Primitive values](#primitive-values)
-  - [Objects with transparent forwarding](#objects-with-transparent-forwarding)
-  - [Arrays](#arrays)
-  - [Functions](#functions)
-  - [Maps and Sets](#maps-and-sets)
-  - [Type guards](#type-guards)
+    - [Primitive values](#primitive-values)
+    - [Objects with transparent forwarding](#objects-with-transparent-forwarding)
+    - [Arrays](#arrays)
+    - [Functions](#functions)
+    - [Maps and Sets](#maps-and-sets)
+    - [Type guards](#type-guards)
 - [API reference](#api-reference)
 - [Patterns and pitfalls](#patterns-and-pitfalls)
 - [Classes that own state](#classes-that-own-state)
 - [Asynchronous code](#asynchronous-code)
 - [Performance](#performance)
-  - [Benchmark results](#benchmark-results)
-  - [What this means for a real app](#what-this-means-for-a-real-app)
+    - [Benchmark results](#benchmark-results)
+    - [What this means for a real app](#what-this-means-for-a-real-app)
 - [SSR and hydration](#ssr-and-hydration)
 - [Using with SvelteKit](#using-with-sveltekit)
 - [Debugging](#debugging)
@@ -120,9 +126,9 @@ Stores work but live in a separate world from runes, with their own subscription
 **Why Box.** Box is a single typed container that does what each of the above does, in one consistent shape. You get the ergonomic `.value` access of pattern 1, the named identity and methods of pattern 2, the encapsulation of pattern 3, and the cross-boundary semantics that prompted patterns 4 and earlier. On top of that, it adds transparent property forwarding for objects, callability for boxed functions, type guards, snapshot, and a `toJSON` hook. One mental model for every piece of state you need to pass around.
 
 ```js
-import { Box } from '@coroama/svelte-box';
+import { box } from '@coroama/svelte-box';
 
-const counter = new Box(0);
+const counter = box(0);
 function increment(c) {
 	c.value++;
 }
@@ -147,12 +153,12 @@ The library exports two reactive containers with the same `.value` accessor and 
 | Construction speed                                      | baseline | ~1.5x faster             |
 | `.value` read/write speed                               | baseline | within noise             |
 
-Use **Box** when you want any of the proxy-only behaviors. Use **FastBox** when you only ever access the value through `.value` and want the smallest possible per-instance cost. The two share the same helper API, so migrating between them is a search-and-replace on the constructor name.
+Use **Box** when you want any of the proxy-only behaviors. Use **FastBox** when you only ever access the value through `.value` and want the smallest possible per-instance cost. The two share the same helper API, so migrating between them is a search-and-replace from `box(...)` to `fastbox(...)`.
 
 ```ts
-import { FastBox } from '@coroama/svelte-box';
+import { fastbox, type FastBox } from '@coroama/svelte-box';
 
-const count = new FastBox(0);
+const count = fastbox(0);
 
 function increment(c: FastBox<number>) {
 	c.value += 1;
@@ -179,9 +185,9 @@ If you ever wrote `function increment(c) { c.value++ }` and had to wrap your val
 
 ```svelte
 <script>
-	import { Box } from '@coroama/svelte-box';
+	import { box } from '@coroama/svelte-box';
 
-	const count = new Box(0);
+	const count = box(0);
 
 	function increment(c) {
 		c.value += 1;
@@ -200,9 +206,9 @@ If you ever wrote `function increment(c) { c.value++ }` and had to wrap your val
 The simplest case. Read and write through `.value`.
 
 ```js
-import { Box } from '@coroama/svelte-box';
+import { box } from '@coroama/svelte-box';
 
-const name = new Box('Ada');
+const name = box('Ada');
 name.value = 'Grace';
 ```
 
@@ -282,9 +288,9 @@ For the FastBox variant, use `fastBoxedMap` and `fastBoxedSet`. There is no Prox
 Every Box has guards that narrow `T` in a normal `if` block:
 
 ```ts
-import { Box } from '@coroama/svelte-box';
+import { box, type Box } from '@coroama/svelte-box';
 
-const b: Box<unknown> = new Box(42);
+const b: Box<unknown> = box<unknown>(42);
 
 if (b.isNumber()) {
 	b.value.toFixed(2); // b.value is now typed as number
@@ -295,9 +301,11 @@ if (b.isNumber()) {
 
 ### `class Box<T>`
 
+Prefer the `box(...)` factory below over `new Box(...)` at all call sites. Direct construction stays supported for two cases. First, subclassing — `class Counter extends Box<number>` constructs via `super(initial)`, and instantiating a subclass uses `new Counter(0)`. Second, the rare case where you specifically want the bare `Box<T>` surface without the forwarding shape.
+
 | Member             | Description                                                                        |
 | ------------------ | ---------------------------------------------------------------------------------- |
-| `new Box(initial)` | Construct a Box around `initial`.                                                  |
+| `new Box(initial)` | Construct a Box around `initial`. Prefer `box(initial)`.                           |
 | `box.value`        | Read or write the boxed value. Reactive.                                           |
 | `box.get()`        | Returns `box.value`. Convenience for functional code.                              |
 | `box.set(v)`       | Sets `box.value = v`.                                                              |
@@ -310,7 +318,7 @@ Type guards: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUnd
 
 ### `box(value)`
 
-Factory equivalent to `new Box(value)`, typed as `Boxed<T>` so TypeScript sees the forwarded properties of `value` directly on the Box.
+Factory equivalent to `new Box(value)`, typed as `Boxed<T>` so TypeScript sees the forwarded properties of `value` directly on the Box. Recommended over `new Box(...)` for all call sites.
 
 ### `boxedMap(entries?)`, `boxedSet(values?)`
 
@@ -333,14 +341,18 @@ s.value.add('y'); // reactive
 
 Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no `instanceof` propagation. The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`) and all 14 type guards work identically because they live on the shared `BaseBox` parent.
 
+Prefer the `fastbox(...)` factory below for parity with `box(...)`.
+
+### `fastbox(value)`
+
+Factory equivalent to `new FastBox(value)`. Returns a `FastBoxed<T>`, currently a plain alias for `FastBox<T>`.
+
 ```ts
-import { FastBox, fastbox } from '@coroama/svelte-box';
+import { fastbox } from '@coroama/svelte-box';
 
-const a = new FastBox(0);
-const b = fastbox(0); // identical, factory style
+const flag = fastbox(false);
+flag.value = true;
 ```
-
-The `fastbox()` factory exists for symmetry with `box()`, it is a thin wrapper around `new FastBox(...)`.
 
 ### `class BaseBox<T>`
 
@@ -357,6 +369,29 @@ type FastBoxedMap<K, V>; // FastBoxed<SvelteMap<K, V>>
 type FastBoxedSet<T>; // FastBoxed<SvelteSet<T>>
 ```
 
+#### `Boxed<T>` vs `Box<T>` (and the FastBox pair)
+
+Both wrap the same runtime value. The difference is what TypeScript surfaces on the wrapper itself.
+
+- `Box<T>` is the bare class. Only `.value` and the Box helpers are visible.
+- `Boxed<T>` is `Box<T> & ForwardShape<T>`. The inner value's properties or call signature show up directly on the wrapper. This is what the `box(...)` factory returns.
+
+Rule of thumb: **produce `Boxed<T>`, consume `Box<T>`**. Most call sites pick up `Boxed<T>` by inference from `box(...)` and never write either name explicitly.
+
+```ts
+// Producing: factory return is Boxed, inferred for locals and class fields.
+const user = box({ name: 'Ada' }); // Boxed<{ name: string }>
+user.name; // forwarding visible to TS
+
+// Consuming: parameter types use the bare Box<T>. Boxed<T> assigns to Box<T>.
+function rename(u: Box<{ name: string }>, name: string) {
+	u.value.name = name;
+}
+rename(user, 'Grace');
+```
+
+`FastBoxed<T>` is currently a plain alias for `FastBox<T>`, so the distinction there is cosmetic. Use `FastBoxed<T>` at factory return positions and `FastBox<T>` for parameters, matching the `Boxed`/`Box` convention. Either compiles to the same type today.
+
 ## Patterns and pitfalls
 
 ### Don't destructure to read primitives
@@ -365,7 +400,7 @@ Destructuring a primitive box gives you a snapshot, not the live cell. Same Svel
 
 ```svelte
 <script>
-	const count = new Box(0);
+	const count = box(0);
 	const { value } = count; // captures 0 right now, not reactive
 </script>
 ```
@@ -400,16 +435,16 @@ This is the use case Box was built for. You can put reactive state inside a clas
 A class field declared `count = $state(0)` is reactive on the instance: `someInstance.count++` works. But if you want to hand a single piece of that state to a child component, a primitive snapshot is not enough. You want the child to read and write the same live cell. Box gives you that handle.
 
 ```ts
-import { Box } from '@coroama/svelte-box';
+import { box, type Box } from '@coroama/svelte-box';
 
 // Todo and User come from your own domain types
 type Todo = { id: string; text: string; done: boolean };
 type User = { id: string; name: string };
 
 class TodoStore {
-	todos = new Box<Todo[]>([]);
-	filter = new Box<'all' | 'active' | 'done'>('all');
-	currentUser = new Box<User | null>(null);
+	todos = box<Todo[]>([]);
+	filter = box<'all' | 'active' | 'done'>('all');
+	currentUser = box<User | null>(null);
 
 	add(todo: Todo) {
 		this.todos.value = [...this.todos.value, todo];
@@ -496,6 +531,8 @@ counter instanceof Counter; // true
 counter instanceof Box; // true
 ```
 
+Caveat: do not declare a `value =` field on the subclass. `BaseBox` already declares `value` as the reactive cell, and a subclass field of the same name would shadow it and break reactivity. Add methods that read and write `this.value`, like `increment` above; do not redeclare the storage.
+
 ### Box inside `$state`, `$state` inside Box
 
 Both directions work and are sometimes useful. `$state` is only available in `.svelte`, `.svelte.js`, or `.svelte.ts` files (or inside a component `<script>`), so the snippet below assumes one of those.
@@ -503,7 +540,7 @@ Both directions work and are sometimes useful. `$state` is only available in `.s
 ```ts
 // Box inside $state: a re-assignable handle inside a reactive object
 const view = $state({
-	selected: new Box<string | undefined>(undefined)
+	selected: box<string | undefined>(undefined)
 });
 
 // $state inside Box: wrap a pre-existing reactive object so it can be passed by reference
@@ -607,7 +644,7 @@ For everything except tight loops over thousands of forwarded reads per frame, t
 
 The bench suite (`npm run bench`) is a three-way comparison: **Baseline** (the fastest alternative a developer would otherwise reach for, usually a class with a `$state` field, raw `$state`, or a direct `SvelteMap`/`SvelteSet`), **Box** (Proxy variant), and **FastBox** (no Proxy). Numbers below are throughput in operations per second. Higher is better.
 
-**Capture context.** The numbers in the tables below come from a single Chromium run via `@vitest/browser-playwright` on Linux x86_64 with the Chromium build that ships with `playwright@1.59.1`. They will drift between machines, browsers, and Svelte versions. Treat them as ballpark figures. To verify on your own hardware, clone the repo and run `npm run bench` (or `npm run bench:json` for a machine-readable dump). The repo also has a scheduled bench workflow (`.github/workflows/bench.yml`) that runs every Monday at 06:00 UTC and uploads a fresh `bench-results.json` as a CI artifact, so the latest run on a known environment is always one click away from the Actions tab.
+**Capture context.** The numbers in the tables below come from a single Chromium run via `@vitest/browser-playwright` on Linux x86_64 with the Chromium build that ships with `playwright` 1.59+. They will drift between machines, browsers, and Svelte versions. Treat them as ballpark figures. To verify on your own hardware, clone the repo and run `npm run bench` (or `npm run bench:json` for a machine-readable dump). The repo also has a scheduled bench workflow (`.github/workflows/bench.yml`) that runs every Monday at 06:00 UTC and uploads a fresh `bench-results.json` as a CI artifact, so the latest run on a known environment is always one click away from the Actions tab.
 
 **Reading the tables.** Every cell labels its direction explicitly:
 
@@ -620,29 +657,29 @@ Higher `hz` is faster. Baseline is the column to beat; Box and FastBox are compa
 **TL;DR.**
 
 - For most read or write operations on a primitive or object Box, **FastBox is within 1 to 5% of the Baseline (effectively match)**. **Box is ~5 to 18% slower**.
-- Construction is the only hot path with a real gap: `new Box(...)` is ~3.1x slower than a `$state` class field; `new FastBox(...)` is ~2.4x slower. Almost always invisible because you construct once.
+- Construction is the only hot path with a real gap: `new Box(...)` is ~2.9x slower than a `$state` class field; `new FastBox(...)` is ~2.0x slower. Almost always invisible because you construct once.
 - Tight loops over thousands of operations per frame are the only place anything gets meaningfully slow. Hoist `box.value` once before the loop.
 
 #### Hot-path operations
 
 | Operation                            | Baseline                       | Box                       | FastBox                   |
 | ------------------------------------ | ------------------------------ | ------------------------- | ------------------------- |
-| Construct (primitive)                | 716k hz (`$state` class field) | 228k hz (3.1x slower)     | 301k hz (2.4x slower)     |
-| Construct (object)                   | 636k hz                        | 207k hz (3.1x slower)     | 265k hz (2.4x slower)     |
-| Read `.value` (primitive)            | 751k hz (raw `$state`)         | 705k hz (1.07x slower)    | 736k hz (match)           |
-| Write `.value` (primitive)           | 388k hz                        | 353k hz (1.10x slower)    | 385k hz (match)           |
-| Read object prop                     | 713k hz (inner `$state` proxy) | 671k hz (1.06x slower) \* | 704k hz (match) \*        |
-| Write object prop                    | 354k hz                        | 308k hz (1.15x slower) \* | 343k hz (match) \*        |
-| Forwarded method call                | 744k hz                        | 688k hz (1.08x slower)    | 732k hz (match) \*        |
-| Forwarded method identity            | 757k hz                        | 640k hz (1.18x slower)    | 703k hz (1.08x slower) \* |
-| `box.snapshot()`                     | 88.6k hz                       | 82.7k hz (1.07x slower)   | 89.9k hz (match)          |
-| `JSON.stringify`                     | 249k hz                        | 247k hz (match)           | 249k hz (match)           |
-| `box.eager()`                        | 759k hz                        | 549k hz (1.38x slower)    | 593k hz (1.28x slower)    |
-| Cross-boundary mutation              | 365k hz (`$state({ value })`)  | 344k hz (1.06x slower)    | 362k hz (match)           |
-| Cross-boundary read from class field | 726k hz                        | 691k hz (match)           | 729k hz (match)           |
-| `Map.set`                            | 724k hz (`SvelteMap`)          | 699k hz (match) †         | 722k hz (match) ‡         |
-| `Map.get`                            | 728k hz                        | 676k hz (1.08x slower) †  | 729k hz (match) ‡         |
-| `Set.add`                            | 715k hz (`SvelteSet`)          | 648k hz (1.10x slower) †  | 647k hz (1.11x slower) ‡  |
+| Construct (primitive)                | 728k hz (`$state` class field) | 255k hz (2.85x slower)    | 355k hz (2.05x slower)    |
+| Construct (object)                   | 661k hz                        | 219k hz (3.01x slower)    | 329k hz (2.01x slower)    |
+| Read `.value` (primitive)            | 772k hz (raw `$state`)         | 716k hz (1.08x slower)    | 733k hz (match)           |
+| Write `.value` (primitive)           | 394k hz (accessor)             | 358k hz (1.10x slower)    | 367k hz (match)           |
+| Read object prop                     | 699k hz (inner `$state` proxy) | 643k hz (1.09x slower) \* | 702k hz (match) \*        |
+| Write object prop                    | 348k hz                        | 325k hz (match) \*        | 337k hz (match) \*        |
+| Forwarded method call                | 756k hz                        | 687k hz (1.10x slower)    | 725k hz (1.04x slower) \* |
+| Forwarded method identity            | 753k hz                        | 640k hz (1.18x slower)    | 702k hz (1.07x slower) \* |
+| `box.snapshot()`                     | 90.3k hz                       | 86.7k hz (match)          | 92.4k hz (match)          |
+| `JSON.stringify`                     | 250k hz                        | 245k hz (match)           | 256k hz (match)           |
+| `box.eager()`                        | 748k hz                        | 530k hz (1.41x slower)    | 577k hz (1.30x slower)    |
+| Cross-boundary mutation              | 378k hz (accessor)             | 347k hz (1.09x slower)    | 350k hz (1.08x slower)    |
+| Cross-boundary read from class field | 741k hz (accessor)             | 711k hz (match)           | 740k hz (match)           |
+| `Map.set`                            | 736k hz (`SvelteMap`)          | 689k hz (match) †         | 745k hz (match) ‡         |
+| `Map.get`                            | 745k hz                        | 687k hz (1.09x slower) †  | 719k hz (match) ‡         |
+| `Set.add`                            | 738k hz (`SvelteSet`)          | 634k hz (1.16x slower) †  | 707k hz (match) ‡         |
 
 \* Box transparently forwards `box.foo`. FastBox does not, so its row reads through `.value.foo`.
 † `boxedMap.set(k, v)` works because Box's proxy shadows `set` with `SvelteMap.set`. `boxedSet.add(t)` is similar.
@@ -652,11 +689,11 @@ Higher `hz` is faster. Baseline is the column to beat; Box and FastBox are compa
 
 These are the only places the gap is large enough to feel. Every cell here is slower than Baseline.
 
-| Operation                            | Baseline | Box                     | FastBox                    |
-| ------------------------------------ | -------- | ----------------------- | -------------------------- |
-| 1000 instances constructed in a loop | 25.0k hz | 678 hz (36.8x slower)   | 2.65k hz (9.4x slower)     |
-| 10k tight-loop `.value` reads        | 9.16k hz | 1.86k hz (4.9x slower)  | 9.23k hz (match)           |
-| 10k tight-loop forwarded-prop reads  | 1.88k hz | 729 hz (2.6x slower) \* | 1.63k hz (1.15x slower) \* |
+| Operation                            | Baseline | Box                     | FastBox                |
+| ------------------------------------ | -------- | ----------------------- | ---------------------- |
+| 1000 instances constructed in a loop | 27.0k hz | 742 hz (36.4x slower)   | 3.35k hz (8.1x slower) |
+| 10k tight-loop `.value` reads        | 9.32k hz | 1.95k hz (4.8x slower)  | 9.08k hz (match)       |
+| 10k tight-loop forwarded-prop reads  | 1.85k hz | 749 hz (2.5x slower) \* | 1.86k hz (match) \*    |
 
 \* "Forwarded" here means `box.foo` for Box (transparent) or `box.value.foo` for FastBox.
 
@@ -668,7 +705,7 @@ A 60Hz frame is 16 ms. To turn the cross-boundary 5 to 10% slowdown into a dropp
 
 The two places Box is meaningfully slower:
 
-- **Construction** at ~3x. Box still constructs at ~228k instances per second in the bench, so a class-based store with 20 boxes at app boot costs roughly 90 microseconds. Negligible at boot, irrelevant for typical UIs, only worth thinking about if you allocate Boxes inside a render loop.
+- **Construction** at ~3x. Box still constructs at ~255k instances per second in the bench, so a class-based store with 20 boxes at app boot costs roughly 80 microseconds. Negligible at boot, irrelevant for typical UIs, only worth thinking about if you allocate Boxes inside a render loop.
 - **Tight read loops** at ~5x. The only realistic hot path. Mitigation is one line: read `box.value` once before the loop, work with the inner.
 
 If your app is a typical UI (forms, lists with hundreds of items, interactive views), the difference does not register. If it does animation, large-list virtualization, or high-frequency simulation, profile and hoist on the hot path.
@@ -768,13 +805,13 @@ This is a solo-maintainer project. It follows semver: anything that breaks the p
 The repository ships:
 
 - A test suite (Vitest in browser mode via `@vitest/browser-playwright`) covering:
-  - Construction, `instanceof Box`, and subclass `instanceof` propagation.
-  - Primitive, object, array, function, and class-instance reactivity, including deep-nested mutations and cross-boundary passing through multiple function layers and class storage.
-  - All 14 type guards plus reactive re-evaluation as the boxed type changes.
-  - `snapshot()`, `eager()`, `toJSON()` / `JSON.stringify`, `structuredClone`.
-  - Proxy semantics: `Object.freeze` rejection, `Object.setPrototypeOf` rejection, `Object.defineProperty` routing, `delete` of own keys, and stable method identity for forwarded methods.
-  - `BoxedMap` and `BoxedSet` mutations, replacement, iteration, and reactivity.
-  - `$derived` integration and bound-method closure preservation.
+    - Construction, `instanceof Box`, and subclass `instanceof` propagation.
+    - Primitive, object, array, function, and class-instance reactivity, including deep-nested mutations and cross-boundary passing through multiple function layers and class storage.
+    - All 14 type guards plus reactive re-evaluation as the boxed type changes.
+    - `snapshot()`, `eager()`, `toJSON()` / `JSON.stringify`, `structuredClone`.
+    - Proxy semantics: `Object.freeze` rejection, `Object.setPrototypeOf` rejection, `Object.defineProperty` routing, `delete` of own keys, and stable method identity for forwarded methods.
+    - `BoxedMap` and `BoxedSet` mutations, replacement, iteration, and reactivity.
+    - `$derived` integration and bound-method closure preservation.
 - A benchmark suite ([benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts)) with comparison baselines (raw `$state`, class with `$state` field, class accessor pair, `$state({ value })` wrapper, direct proxy access) covering construction, reads, writes, forwarded property access, method calls, type guards, snapshot, eager, JSON.stringify, BoxedMap/Set operations, cross-boundary mutation, and bulk stress paths.
 - A GitHub Actions CI pipeline that runs lint, type-check, and the test suite on every push to `main`/`master`/`develop` and on every pull request.
 - A scheduled benchmark workflow that runs weekly (and on demand or on PRs that touch `src/lib`), uploads results as artifacts, and posts them as PR comments for regression review.
