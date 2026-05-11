@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-11
+
+### Added
+
+- Re-export `PrimitiveType` from the package barrel, defined as `string | number | bigint | boolean | symbol | null | undefined`. `isPrimitive()` now narrows the boxed value to `BoxCell<PrimitiveType>` instead of the inline union.
+
+### Changed
+
+- **Construction throughput**: helper methods and type guards on `BaseBox` moved from per-instance arrow fields to prototype methods. `new FastBox(...)` is roughly 20-22% faster, `new Box(...)` is roughly 19-20% faster. The `FastBox`-vs-`Box` ratio stays around 1.4-1.5x depending on payload. Trade-off: detached helper reads (`const g = box.get; g()`) now lose `this`; call helpers on the box or wrap them as `() => box.value`.
+- Docs and JSDoc examples now prefer the `box(...)` and `fastbox(...)` factories over `new Box(...)` / `new FastBox(...)` for consistency. The class constructors remain public; only the recommended call style changed.
+
+### Fixed
+
+- Internal definition of `PrimitiveType` was the full `typeof` tag union (including `'object'` and `'function'`) instead of the actual primitive value types. Not previously re-exported from the barrel, so no consumer could have imported it. Fixed before adding it to the public surface.
+- **`LICENSE` file replaced with MIT text.** The 0.1.0 tarball shipped a GPL-3.0 `LICENSE` file by mistake, even though `package.json` and the README correctly declared MIT. 0.2.0 ships the MIT license text so the file matches the long-stated metadata. The project's license has been MIT throughout; this is a correction of the bundled file, not a license change.
+
+### Documentation
+
+- `fastbox` factory now has full JSDoc with an example, matching the `box` factory.
+- New "`Boxed<T>` vs `Box<T>`" section in the README and in the `Boxed` / `FastBoxed` JSDoc, with the "produce `Boxed<T>`, consume `Box<T>`" rule and a worked example.
+
+### Tests
+
+- Browser-mode Vitest suite split per module: `tests/box.svelte.test.ts` (Box), `tests/fastbox.svelte.test.ts` (FastBox plus `fastbox` factory), `tests/collections/map.svelte.test.ts` (`boxedMap`, `fastBoxedMap`, Map JSON.stringify), and `tests/collections/set.svelte.test.ts` (`boxedSet`, `fastBoxedSet`, Set JSON.stringify). Benchmark suite split the same way: `benchmarking/box.svelte.bench.ts` for Box/FastBox, `benchmarking/collections/map.svelte.bench.ts` and `benchmarking/collections/set.svelte.bench.ts` for collection-specific groups.
+
 ## [0.1.0] - 2026-05-09
 
 First public release.
@@ -65,5 +90,6 @@ First public release.
 - AGENTS.md with source layout, class hierarchy, type-safety details, build pipeline, and contributor expectations.
 - SvelteKit playground at `src/routes/` with `/`, `/box`, and `/fastbox` routes for side-by-side comparison.
 
-[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/IsaiahCoroama/svelte-box/releases/tag/v0.1.0
