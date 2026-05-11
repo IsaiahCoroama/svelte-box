@@ -1,7 +1,7 @@
 import { isObjectLike } from './utils.js';
 
 /**
- * Internal base class shared by `Box` and `FastBox`. Holds the reactive
+ * Shared base class for `Box` and `FastBox`. Holds the reactive
  * `value` field plus every helper method and type guard. Both `Box` (the
  * Proxy variant) and `FastBox` (the plain variant) inherit from this.
  *
@@ -9,6 +9,11 @@ import { isObjectLike } from './utils.js';
  * type a function that accepts either subclass with `BaseBox<T>` instead of
  * `Box<T> | FastBox<T>`. Subclassing `BaseBox` directly is supported and
  * gives you something equivalent to `FastBox`.
+ *
+ * Helper methods and type guards live on the prototype rather than as
+ * per-instance arrow fields so construction stays cheap. Reading detached
+ * methods (e.g. `const g = box.get; g()`) loses `this` as a result; call
+ * them on the box (`box.get()`) or wrap them yourself (`() => box.value`).
  */
 export class BaseBox {
 	value = $state();
@@ -17,41 +22,79 @@ export class BaseBox {
 		this.value = initial;
 	}
 
-	get = () => this.value;
-	set = (value) => {
+	get() {
+		return this.value;
+	}
+	set(value) {
 		this.value = value;
-	};
-	del = () => {
+	}
+	// The `Box<number>` (T excludes undefined) call-site error is enforced at
+	// the TypeScript level only, via the polymorphic `this` constraint in the
+	// sibling `.d.ts`. JS callers and `as any` casts can still reach this
+	// body and break the value type.
+	del() {
 		this.value = /** @type {any} */ (undefined);
-	};
+	}
 
-	snapshot = () => $state.snapshot(this.value);
-	eager = () => $state.eager(this.value);
+	snapshot() {
+		return $state.snapshot(this.value);
+	}
+	eager() {
+		return $state.eager(this.value);
+	}
 
-	// `JSON.stringify(box)` would otherwise see a function (the Box proxy
-	// target is a function, so `typeof box === 'function'`) and return
-	// `undefined`. Routing through `toJSON` makes serialization see the
-	// inner value. FastBox does not need this for serialization but
-	// inheriting it keeps the surface identical.
-	toJSON = () => this.value;
+	// Without `toJSON`, `JSON.stringify(box)` returns the wrong thing for
+	// both subclasses. Box: the proxy target is a function, so the result
+	// is `undefined`. FastBox: serialization sees the class instance and
+	// produces `'{"value":...}'` instead of the inner value. Returning
+	// `this.value` makes both serialize as if the caller had passed
+	// `box.value` directly.
+	toJSON() {
+		return this.value;
+	}
 
-	// Primitive type guards
-	isBoolean = () => typeof this.value === 'boolean';
-	isNumber = () => typeof this.value === 'number';
-	isString = () => typeof this.value === 'string';
-	isBigInt = () => typeof this.value === 'bigint';
-	isSymbol = () => typeof this.value === 'symbol';
-	isUndefined = () => this.value === undefined;
-	isNull = () => this.value === null;
+	isBoolean() {
+		return typeof this.value === 'boolean';
+	}
+	isNumber() {
+		return typeof this.value === 'number';
+	}
+	isString() {
+		return typeof this.value === 'string';
+	}
+	isBigInt() {
+		return typeof this.value === 'bigint';
+	}
+	isSymbol() {
+		return typeof this.value === 'symbol';
+	}
+	isUndefined() {
+		return this.value === undefined;
+	}
+	isNull() {
+		return this.value === null;
+	}
 
-	// Composite
-	isNullish = () => this.value == null;
-	isPrimitive = () => !isObjectLike(this.value);
+	isNullish() {
+		return this.value == null;
+	}
+	isPrimitive() {
+		return !isObjectLike(this.value);
+	}
 
-	// Object-like
-	isObject = () => this.value !== null && typeof this.value === 'object';
-	isArray = () => Array.isArray(this.value);
-	isFunction = () => typeof this.value === 'function';
-	isMap = () => this.value instanceof Map;
-	isSet = () => this.value instanceof Set;
+	isObject() {
+		return this.value !== null && typeof this.value === 'object';
+	}
+	isArray() {
+		return Array.isArray(this.value);
+	}
+	isFunction() {
+		return typeof this.value === 'function';
+	}
+	isMap() {
+		return this.value instanceof Map;
+	}
+	isSet() {
+		return this.value instanceof Set;
+	}
 }

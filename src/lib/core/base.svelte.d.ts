@@ -1,5 +1,5 @@
 import type { Snapshot } from 'svelte';
-import type { BoxCell } from './utils.js';
+import type { BoxCell, PrimitiveType } from './utils.js';
 
 /**
  * Shared base class for {@link Box} and `FastBox`. Holds the reactive
@@ -11,10 +11,10 @@ import type { BoxCell } from './utils.js';
  * subclass without committing to one. Subclassing `BaseBox` directly is
  * supported and produces something equivalent to `FastBox`.
  *
- * Type guards use a polymorphic `this` predicate (`this is this & { value: X }`)
+ * Type guards use a polymorphic `this` predicate (`this is this & BoxCell<X>`)
  * so narrowing inside an `if (b.isString())` block keeps the original
  * subclass type and only refines the `value` field. A `Box<unknown>`
- * narrows to `Box<unknown> & { value: string }` rather than dropping to
+ * narrows to `Box<unknown> & BoxCell<string>` rather than dropping to
  * the base class.
  */
 export declare class BaseBox<T> {
@@ -79,9 +79,8 @@ export declare class BaseBox<T> {
 
 	/** True when the boxed value is `null` or `undefined`. */
 	isNullish(): this is this & BoxCell<null | undefined>;
-	/** True when the boxed value is any primitive type. */
-	isPrimitive(): this is this &
-		BoxCell<string | number | bigint | boolean | symbol | null | undefined>;
+	/** True when the boxed value is any primitive type. Narrows to {@link PrimitiveType}. */
+	isPrimitive(): this is this & BoxCell<PrimitiveType>;
 
 	/** True when the boxed value is a non-null object. */
 	isObject(): this is this & BoxCell<object>;

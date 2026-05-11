@@ -22,6 +22,23 @@ type ForwardShape<T> = T extends (...args: infer A) => infer R
  * `String.prototype.toUpperCase` still work at runtime, the type just
  * narrows to the safer surface so you do not accidentally treat a primitive
  * box as the primitive itself.
+ *
+ * ### `Boxed<T>` vs `Box<T>`
+ *
+ * `Box<T>` is the bare class. `Boxed<T>` is `Box<T> & ForwardShape<T>`, the
+ * type the `box(...)` factory returns. Both wrap the same runtime value.
+ * The difference is only what TypeScript shows you on the wrapper itself.
+ *
+ * - **Use `Boxed<T>`** when the caller benefits from seeing the inner
+ *   value's properties or call signature directly on the Box: factory
+ *   return types, locals from `box(...)`, public APIs that hand back a
+ *   forwarded wrapper. This is what `box(...)` returns, so most call sites
+ *   pick it up by inference and never have to write it.
+ * - **Use `Box<T>`** for parameter types and any spot where the consumer
+ *   only reaches the value through `.value` (or through Box's own
+ *   helpers). `Box<T>` parameters accept `Boxed<T>` too.
+ *
+ * Rule of thumb: produce `Boxed<T>`, consume `Box<T>`.
  */
 export type Boxed<T> = Box<T> & ForwardShape<T>;
 
@@ -44,9 +61,16 @@ export type Boxed<T> = Box<T> & ForwardShape<T>;
  *   `boxedMap.set(key, value)` calls `SvelteMap.set` rather than Box's
  *   helper. To replace the entire boxed value, use `box.value = newValue`.
  *
+ * Prefer the {@link box} factory over `new Box(...)`. The factory returns
+ * the {@link Boxed} type, so transparent forwarding and callability show
+ * up in TypeScript without a cast. Construct directly only when you need
+ * the bare `Box<T>` surface (e.g. as a class field with `: Box<T>`).
+ *
  * @example
  * ```ts
- * const count = new Box(0);
+ * import { box } from '@coroama/svelte-box';
+ *
+ * const count = box(0);
  *
  * function increment(b: Box<number>) {
  *   b.value++;
@@ -74,4 +98,4 @@ export declare class Box<T> extends BaseBox<T> {}
  * Box directly. Prefer this over `new Box(...)` when you want method or
  * property forwarding to show up in TypeScript.
  */
-export declare const box: <T>(initial: T) => Boxed<T>;
+export declare function box<T>(initial: T): Boxed<T>;

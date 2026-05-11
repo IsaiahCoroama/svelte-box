@@ -67,8 +67,8 @@ export class Box extends BaseBox {
 		const self = this;
 
 		// Snapshot of keys that belong to Box (or any subclass) at construction
-		// time. We walk the prototype chain so we catch class fields, instance
-		// arrow methods, and any accessors Svelte installs for $state. We stop
+		// time. We walk the prototype chain so we catch class fields, prototype
+		// methods, and any accessors Svelte installs for $state. We stop
 		// before Object.prototype so toString, hasOwnProperty, and friends
 		// still forward to the inner value.
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -230,4 +230,6 @@ export class Box extends BaseBox {
 	}
 }
 
-export const box = (initial) => new Box(initial);
+export function box(initial) {
+	return new Box(initial);
+}
