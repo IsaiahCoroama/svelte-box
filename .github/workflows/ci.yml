@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [master, develop]
   pull_request:
 
 concurrency:
@@ -27,8 +27,12 @@ jobs:
       - run: bun run check
 
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -38,20 +42,37 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      - name: Resolve Playwright cache path
+        id: pw-path
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux)   echo "path=$HOME/.cache/ms-playwright" >> "$GITHUB_OUTPUT" ;;
+            macOS)   echo "path=$HOME/Library/Caches/ms-playwright" >> "$GITHUB_OUTPUT" ;;
+            Windows) echo "path=$LOCALAPPDATA\\ms-playwright" >> "$GITHUB_OUTPUT" ;;
+          esac
+
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@v4
         with:
-          path: ~/.cache/ms-playwright
+          path: ${{ steps.pw-path.outputs.path }}
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
-      - name: Install Playwright Chromium
+      # `playwright install --with-deps` only works on Ubuntu (apt-based).
+      # macOS and Windows don't have a system-deps step at all; just install
+      # the browser binary.
+      - name: Install Playwright Chromium (Linux)
+        if: runner.os == 'Linux' && steps.playwright-cache.outputs.cache-hit != 'true'
         run: bunx playwright install chromium --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
 
-      - name: Install Playwright system deps only
+      - name: Install Playwright system deps only (Linux)
+        if: runner.os == 'Linux' && steps.playwright-cache.outputs.cache-hit == 'true'
         run: bunx playwright install-deps chromium
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      - name: Install Playwright Chromium (macOS/Windows)
+        if: runner.os != 'Linux' && steps.playwright-cache.outputs.cache-hit != 'true'
+        run: bunx playwright install chromium
 
       - run: bun run test
 
@@ -68,3 +89,25 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - run: bun run prepack
+
+  ci-all-greens:
+    name: ci-all-greens
+    # Branch-protection hook: a single required check that passes only when
+    # every other job (including all test matrix legs) succeeds. `if: always()`
+    # forces this job to run even when an upstream job fails, so the failure
+    # surfaces here instead of being skipped.
+    if: always()
+    needs: [lint, test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all required jobs succeeded
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          echo "lint=$LINT_RESULT test=$TEST_RESULT build=$BUILD_RESULT"
+          if [[ "$LINT_RESULT" != "success" || "$TEST_RESULT" != "success" || "$BUILD_RESULT" != "success" ]]; then
+            echo "One or more jobs failed."
+            exit 1
+          fi
