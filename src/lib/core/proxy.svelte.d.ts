@@ -18,10 +18,10 @@ type ForwardShape<T> = T extends (...args: infer A) => infer R
  * `new box(...)` invokes or constructs the inner function.
  *
  * For primitives, only the `Box<T>` surface is typed. Read or write the
- * underlying value through `box.value`. Primitive prototype methods like
- * `String.prototype.toUpperCase` still work at runtime, the type just
- * narrows to the safer surface so you do not accidentally treat a primitive
- * box as the primitive itself.
+ * underlying value through `box.value`. Primitive prototype methods are
+ * **not** forwarded: `box('hi').toUpperCase` returns `undefined` because
+ * the proxy only forwards properties of object-like inner values. Call
+ * primitive methods through `.value`: `box('hi').value.toUpperCase()`.
  *
  * ### `Boxed<T>` vs `Box<T>`
  *

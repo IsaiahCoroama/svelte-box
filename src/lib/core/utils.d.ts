@@ -19,5 +19,9 @@ export type PrimitiveType = string | number | bigint | boolean | symbol | null |
  */
 export type BoxCell<T> = { value: T };
 
-export declare function isFunction(v: unknown): v is (...args: unknown[]) => unknown;
+/** True when `v` is a function. Narrows `v` to a callable type. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export declare function isFunction(v: unknown): v is (...args: any[]) => unknown;
+
+/** True when `v` is non-null and either an `object` or a `function`. */
 export declare function isObjectLike(v: unknown): v is object;
