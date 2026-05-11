@@ -16,7 +16,7 @@ bun add @coroama/svelte-box
 
 Peer dependency: `svelte ^5.0.0`. The compiled package runs anywhere a modern JS runtime does. Node 20.6 or newer is only needed if you are building from source.
 
-**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The same SvelteKit playground that lives under `src/routes/`, deployed from the `master` branch on every push. Try `Box` and `FastBox` side-by-side without cloning the repo.
+**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The same SvelteKit playground that lives under `src/routes/`, redeployed by GitHub Pages after every green CI run on `master`. Try `Box` and `FastBox` side-by-side without cloning the repo.
 
 ## Contents
 
@@ -150,7 +150,7 @@ The library exports two reactive containers with the same `.value` accessor and 
 | Transparent property forwarding (`box.foo` reads inner) | yes      | no, use `box.value`      |
 | Callable when wrapping a function (`box(...)`)          | yes      | no, use `box.value(...)` |
 | `instanceof Box` / subclass instanceof through proxy    | yes      | n/a, plain class         |
-| Construction speed                                      | baseline | ~1.5x faster             |
+| Construction speed                                      | baseline | ~1.5-1.6x faster         |
 | `.value` read/write speed                               | baseline | within noise             |
 
 Use **Box** when you want any of the proxy-only behaviors. Use **FastBox** when you only ever access the value through `.value` and want the smallest possible per-instance cost. The two share the same helper API, so migrating between them is a search-and-replace from `box(...)` to `fastbox(...)`.
@@ -314,7 +314,7 @@ Prefer the `box(...)` factory below over `new Box(...)` at all call sites. Direc
 | `box.eager()`      | Returns the current value bypassing async UI suspension. Wraps `$state.eager`.     |
 | `box.toJSON()`     | Returns the inner value. Called automatically by `JSON.stringify`.                 |
 
-Type guards: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUndefined`, `isNull`, `isNullish`, `isPrimitive`, `isObject`, `isArray`, `isFunction`, `isMap`, `isSet`. Each narrows `T` via `this is Box<...>`.
+Type guards: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUndefined`, `isNull`, `isNullish`, `isPrimitive`, `isObject`, `isArray`, `isFunction`, `isMap`, `isSet`. Each narrows the boxed value via the polymorphic-`this` predicate `this is this & BoxCell<X>`, so inside an `if (b.isString())` block the original subclass type is preserved and only the `value` field is refined to `string`.
 
 ### `box(value)`
 
@@ -339,7 +339,7 @@ s.value.add('y'); // reactive
 
 ### `class FastBox<T>`
 
-Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no `instanceof` propagation. The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`) and all 14 type guards work identically because they live on the shared `BaseBox` parent.
+Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no proxy mediation of `instanceof` (a `FastBox` is a plain class, so subclass `instanceof` works through the normal prototype chain). The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`) and all 14 type guards work identically because they live on the shared `BaseBox` parent.
 
 Prefer the `fastbox(...)` factory below for parity with `box(...)`.
 
@@ -766,15 +766,17 @@ For unit tests, `box.snapshot()` and `box.value` are both safe to compare with `
 
 ## Bundle size and tree-shaking
 
-The library ships as ESM with `"sideEffects": ["**/*.css"]` so all exports are tree-shakeable. The factories are split across two files so importing only what you need only pulls in what you need:
+The library ships as ESM with `"sideEffects": ["**/*.css"]` so all exports are tree-shakeable. The lib is split across `core/` (Box, FastBox, helpers, type guards) and `collections/` (Map and Set wrappers, with map and set in separate files), so importing only what you need only pulls in what you need:
 
-| Import                                 | What gets bundled                                                  |
-| -------------------------------------- | ------------------------------------------------------------------ |
-| `Box`, `box`, type guards, helpers     | Box class only. No `SvelteMap` or `SvelteSet`.                     |
-| `boxedMap` or `boxedSet`               | Box plus `SvelteMap` and `SvelteSet` (both share one source file). |
-| Types only (`Boxed`, `BoxedMap`, etc.) | Erased at build time.                                              |
+| Import                                 | What gets bundled                                  |
+| -------------------------------------- | -------------------------------------------------- |
+| `Box`, `box`, type guards, helpers     | Box class only. No `SvelteMap` or `SvelteSet`.     |
+| `FastBox`, `fastbox`                   | FastBox class only. No `SvelteMap` or `SvelteSet`. |
+| `boxedMap` or `fastBoxedMap`           | Wrapper plus `SvelteMap`. No `SvelteSet`.          |
+| `boxedSet` or `fastBoxedSet`           | Wrapper plus `SvelteSet`. No `SvelteMap`.          |
+| Types only (`Boxed`, `BoxedMap`, etc.) | Erased at build time.                              |
 
-A modern tree-shaking bundler (Vite, Rollup, esbuild, webpack 5+) will drop whichever of `SvelteMap`/`SvelteSet` you do not actually use, so importing only `boxedMap` typically pulls in just `Box` plus `SvelteMap`. There are no runtime dependencies beyond the `svelte` peer.
+A modern tree-shaking bundler (Vite, Rollup, esbuild, webpack 5+) drops whichever of `SvelteMap`/`SvelteSet` you do not actually import. There are no runtime dependencies beyond the `svelte` peer.
 
 ## Compatibility
 
@@ -790,7 +792,8 @@ For reference, the Box proxy implements: `apply`, `construct`, `get`, `set`, `ha
 
 ## Caveats
 
-- **`get` / `set` / `del` are shadowed by inner methods of the same name.** Wrapping a `Map`, `Set`, or any object with a `set` method means `box.set(...)` calls the inner method, not Box's helper. Use `box.value = newValue` to replace the whole boxed value in that case.
+- **`get` and `set` are shadowed by inner methods of the same name on `Box`.** Wrapping a `Map`, `Set`, or any object with one of those methods means `box.set(...)` calls the inner method, not Box's helper. Use `box.value = newValue` to replace the whole boxed value in that case. `del` is not in the shadow list (no common collection exposes `.del`), so `box.del()` always calls Box's helper.
+- **`FastBox` collisions are destructive, not shadowed.** With no proxy in the way, calling `fb.set(k, v)` on a `FastBox<Map<K, V>>` invokes `BaseBox.set(value)` and overwrites `.value` with `k`, dropping `v`. Always reach inner Map/Set methods through `.value`: `fb.value.set(k, v)`.
 - **Plain `Map` and `Set` are not reactive.** Use `boxedMap()` or `boxedSet()` instead of `new Box(new Map())`.
 - **`Object.keys(box)` returns the inner object's keys.** Box's helper methods are hidden from key enumeration so spreads and iteration behave like the inner value.
 - **`Object.freeze(box)` throws.** Freezing or sealing the proxy itself is not supported. Freeze `box.value` instead.
@@ -804,18 +807,18 @@ This is a solo-maintainer project. It follows semver: anything that breaks the p
 
 The repository ships:
 
-- A test suite (Vitest in browser mode via `@vitest/browser-playwright`) covering:
-    - Construction, `instanceof Box`, and subclass `instanceof` propagation.
+- A test suite (Vitest in browser mode via `@vitest/browser-playwright`) split per module: [tests/box.svelte.test.ts](tests/box.svelte.test.ts) for the proxy Box, [tests/fastbox.svelte.test.ts](tests/fastbox.svelte.test.ts) for FastBox and the `fastbox` factory, and [tests/collections/](tests/collections/) for Map and Set wrappers. Together they cover:
+    - Construction, `instanceof Box`, and subclass `instanceof` propagation through the proxy.
     - Primitive, object, array, function, and class-instance reactivity, including deep-nested mutations and cross-boundary passing through multiple function layers and class storage.
     - All 14 type guards plus reactive re-evaluation as the boxed type changes.
     - `snapshot()`, `eager()`, `toJSON()` / `JSON.stringify`, `structuredClone`.
-    - Proxy semantics: `Object.freeze` rejection, `Object.setPrototypeOf` rejection, `Object.defineProperty` routing, `delete` of own keys, and stable method identity for forwarded methods.
-    - `BoxedMap` and `BoxedSet` mutations, replacement, iteration, and reactivity.
+    - Proxy semantics: `Object.freeze` rejection, `Object.setPrototypeOf` rejection, `Object.defineProperty` routing, `delete` of own keys, stable method identity for forwarded methods, the `apply`-trap `this` contract, and primitive non-forwarding.
+    - `BoxedMap` / `BoxedSet` (proxy variants) plus `FastBoxedMap` / `FastBoxedSet` (no-proxy variants) for mutations, replacement, iteration, and reactivity.
     - `$derived` integration and bound-method closure preservation.
-- A benchmark suite ([benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts)) with comparison baselines (raw `$state`, class with `$state` field, class accessor pair, `$state({ value })` wrapper, direct proxy access) covering construction, reads, writes, forwarded property access, method calls, type guards, snapshot, eager, JSON.stringify, BoxedMap/Set operations, cross-boundary mutation, and bulk stress paths.
-- A GitHub Actions CI pipeline that runs lint, type-check, build, and the test suite on every push to `master`/`develop` and on every pull request. Tests run on Linux, macOS, and Windows via a matrix; a single `ci-all-greens` aggregator job is the suggested required check for branch protection.
+- A benchmark suite split across [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) (Box and FastBox core), [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts), and [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts). Comparison baselines (raw `$state`, class with `$state` field, class accessor pair, `$state({ value })` wrapper, direct `SvelteMap`/`SvelteSet`) cover construction, reads, writes, forwarded property access, method calls, type guards, snapshot, eager, JSON.stringify, BoxedMap/Set operations, cross-boundary mutation, and bulk stress paths.
+- A GitHub Actions CI pipeline that runs lint, type-check, build, and the test suite on every push to `master` and on every pull request. Tests run on Linux, macOS, and Windows via a matrix; a single `ci-all-greens` aggregator job is the required check for branch protection and reports success even when the pipeline is skipped because only docs changed.
 - A post-merge benchmark workflow that runs after pull requests touching `src/lib`, `benchmarking/`, or the workflow itself merge into `master`. Uploads results as artifacts and posts a summary comment on the merged PR for regression review.
-- A separate publish workflow that re-runs the full test suite, verifies the release tag matches the package version, and publishes to npm with provenance attestations on every GitHub release.
+- A separate publish workflow that re-runs the full test suite, verifies the release tag matches the package version, and publishes to npm via [Trusted Publisher (OIDC)](https://docs.npmjs.com/trusted-publishers) with provenance attestations on every GitHub release. No long-lived npm token is stored; publishes are gated behind a GitHub Environment with required approval.
 
 Issues, contributions, and the changelog: <https://github.com/IsaiahCoroama/svelte-box>. The changelog follows the [Keep a Changelog](https://keepachangelog.com) format. Intended cadence is one entry per release; anything that changes the public surface (exports listed in this README, runtime behavior of those exports, or types of those exports) is called out under that release entry.
 
@@ -827,7 +830,7 @@ This is a solo-maintainer project. Be honest about what that means when you adop
 - **Severity heuristic.** Reproducible correctness bugs and security issues take priority over feature requests and DX polish. Open an issue with a minimal reproduction and you will get the fastest path to a fix.
 - **Contributions welcome.** PRs that include a test and keep the bench numbers within noise are the easiest to land. Big architectural changes should start as an issue first so the design conversation does not stall on a long branch.
 - **Svelte 6 plan.** The library uses only the public Svelte 5 rune API (`$state`, `$state.snapshot`, `$state.eager`) plus the standard ECMAScript Proxy. When Svelte 6 lands, the intent is to support it on the same major version if the Svelte upgrade does not require a public-surface break, otherwise cut a new major. Best-effort on backports to the previous major; no time-bound guarantee until there is a shipped major to support.
-- **Bus factor.** If the maintainer becomes unavailable, the code is small enough (around 650 lines including hand-written `.d.ts` siblings, of which `core/proxy.svelte.js` is the largest single file at ~230 lines) that a fork can keep it alive without specialist knowledge. The README, AGENTS.md, and the test suite are intended to give a future maintainer everything they need to operate the project.
+- **Bus factor.** If the maintainer becomes unavailable, the code is small enough (around 790 lines including hand-written `.d.ts` siblings, of which `core/proxy.svelte.js` is the largest single file at ~240 lines) that a fork can keep it alive without specialist knowledge. The README, AGENTS.md, and the test suite are intended to give a future maintainer everything they need to operate the project.
 - **Adoption signal.** This is a young library. There is no implicit claim of broad production usage, and there should not be one. Evaluate it on the API, the tests, the benchmarks, and the live demo, not on download numbers.
 
 ## License
