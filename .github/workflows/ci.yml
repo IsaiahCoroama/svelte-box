@@ -26,8 +26,12 @@ jobs:
         id: filter
         with:
           # `source` is true when the diff includes at least one path that
-          # is NOT in the excluded list below. Order does not matter for
-          # picomatch negation.
+          # is NOT in any of the excluded groups below. `every` is required
+          # so a file must satisfy ALL negation patterns (not just one) to
+          # count as a match. With the default `some`, README.md would
+          # match `!LICENSE` (it isn't LICENSE) and the filter would always
+          # fire.
+          predicate-quantifier: 'every'
           filters: |
             source:
               - '!**/*.md'
