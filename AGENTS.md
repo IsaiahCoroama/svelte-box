@@ -107,9 +107,9 @@ Reactivity tests use `$effect.root` for setup and `flushSync()` between mutation
 import { withRoot } from './_helpers.svelte.js';
 
 const cleanup = withRoot(() => {
-	$effect(() => {
-		observed = b.value;
-	});
+    $effect(() => {
+        observed = b.value;
+    });
 });
 flushSync();
 b.value = newValue;

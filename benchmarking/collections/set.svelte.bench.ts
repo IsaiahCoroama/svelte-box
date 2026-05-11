@@ -18,23 +18,23 @@ import { boxedSet, fastBoxedSet } from '../../src/lib/index.js';
 const RESET_EVERY = 10_000;
 
 describe('Set.add', () => {
-	let ss = new SvelteSet<number>();
-	let bs = boxedSet<number>();
-	let fbs = fastBoxedSet<number>();
-	let i = 0;
+    let ss = new SvelteSet<number>();
+    let bs = boxedSet<number>();
+    let fbs = fastBoxedSet<number>();
+    let i = 0;
 
-	bench('Baseline: SvelteSet.add(i)', () => {
-		if (i % RESET_EVERY === 0) ss = new SvelteSet<number>();
-		ss.add(i++);
-	});
+    bench('Baseline: SvelteSet.add(i)', () => {
+        if (i % RESET_EVERY === 0) ss = new SvelteSet<number>();
+        ss.add(i++);
+    });
 
-	bench('Box: boxedSet.add(i) (forwarded)', () => {
-		if (i % RESET_EVERY === 0) bs = boxedSet<number>();
-		bs.add(i++);
-	});
+    bench('Box: boxedSet.add(i) (forwarded)', () => {
+        if (i % RESET_EVERY === 0) bs = boxedSet<number>();
+        bs.add(i++);
+    });
 
-	bench('FastBox: fastBoxedSet.value.add(i)', () => {
-		if (i % RESET_EVERY === 0) fbs = fastBoxedSet<number>();
-		fbs.value.add(i++);
-	});
+    bench('FastBox: fastBoxedSet.value.add(i)', () => {
+        if (i % RESET_EVERY === 0) fbs = fastBoxedSet<number>();
+        fbs.value.add(i++);
+    });
 });

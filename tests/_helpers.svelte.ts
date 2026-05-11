@@ -10,7 +10,7 @@
  * returned cleanup before the test finishes so the root is disposed.
  */
 export function withRoot(setup: () => void): () => void {
-	return $effect.root(() => {
-		setup();
-	});
+    return $effect.root(() => {
+        setup();
+    });
 }

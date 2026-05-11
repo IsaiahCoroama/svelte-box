@@ -25,24 +25,24 @@ import { Box, FastBox, box } from '../src/lib/index.js';
 // a free expression. The wrapper classes below let us compare per-instance
 // construction cost against `new Box(...)` on equal footing.
 class ManualPrimitive {
-	value = $state(0);
+    value = $state(0);
 }
 
 class ManualObject {
-	value = $state({ a: 1, b: 2, c: 3 });
+    value = $state({ a: 1, b: 2, c: 3 });
 }
 
 // Accessor-pattern alternative: hides the cell behind a getter/setter pair.
 // The "manual reactive class" pattern people reach for before adopting a
 // library like svelte-box.
 class AccessorPrimitive {
-	#cell = $state(0);
-	get value() {
-		return this.#cell;
-	}
-	set value(v: number) {
-		this.#cell = v;
-	}
+    #cell = $state(0);
+    get value() {
+        return this.#cell;
+    }
+    set value(v: number) {
+        this.#cell = v;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -50,35 +50,35 @@ class AccessorPrimitive {
 // ---------------------------------------------------------------------------
 
 describe('construction (primitive)', () => {
-	bench('Baseline: new ManualPrimitive() (class with $state field)', () => {
-		new ManualPrimitive();
-	});
+    bench('Baseline: new ManualPrimitive() (class with $state field)', () => {
+        new ManualPrimitive();
+    });
 
-	bench('Box: new Box(0)', () => {
-		new Box(0);
-	});
+    bench('Box: new Box(0)', () => {
+        new Box(0);
+    });
 
-	bench('FastBox: new FastBox(0)', () => {
-		new FastBox(0);
-	});
+    bench('FastBox: new FastBox(0)', () => {
+        new FastBox(0);
+    });
 });
 
 describe('construction (object)', () => {
-	bench('Baseline: new ManualObject() (class with $state field)', () => {
-		new ManualObject();
-	});
+    bench('Baseline: new ManualObject() (class with $state field)', () => {
+        new ManualObject();
+    });
 
-	bench('Box: new Box({ a, b, c })', () => {
-		new Box({ a: 1, b: 2, c: 3 });
-	});
+    bench('Box: new Box({ a, b, c })', () => {
+        new Box({ a: 1, b: 2, c: 3 });
+    });
 
-	bench('Box: box({ a, b, c }) factory', () => {
-		box({ a: 1, b: 2, c: 3 });
-	});
+    bench('Box: box({ a, b, c }) factory', () => {
+        box({ a: 1, b: 2, c: 3 });
+    });
 
-	bench('FastBox: new FastBox({ a, b, c })', () => {
-		new FastBox({ a: 1, b: 2, c: 3 });
-	});
+    bench('FastBox: new FastBox({ a, b, c })', () => {
+        new FastBox({ a: 1, b: 2, c: 3 });
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -86,59 +86,59 @@ describe('construction (object)', () => {
 // ---------------------------------------------------------------------------
 
 describe('primitive read', () => {
-	const manual = new ManualPrimitive();
-	const accessor = new AccessorPrimitive();
-	const bx = new Box(0);
-	const fb = new FastBox(0);
-	const raw = $state(0);
+    const manual = new ManualPrimitive();
+    const accessor = new AccessorPrimitive();
+    const bx = new Box(0);
+    const fb = new FastBox(0);
+    const raw = $state(0);
 
-	bench('Baseline: raw $state read', () => {
-		raw;
-	});
+    bench('Baseline: raw $state read', () => {
+        raw;
+    });
 
-	bench('Baseline: ManualPrimitive.value (class with $state field)', () => {
-		manual.value;
-	});
+    bench('Baseline: ManualPrimitive.value (class with $state field)', () => {
+        manual.value;
+    });
 
-	bench('Baseline: AccessorPrimitive.value (class accessor)', () => {
-		accessor.value;
-	});
+    bench('Baseline: AccessorPrimitive.value (class accessor)', () => {
+        accessor.value;
+    });
 
-	bench('Box: bx.value', () => {
-		bx.value;
-	});
+    bench('Box: bx.value', () => {
+        bx.value;
+    });
 
-	bench('FastBox: fb.value', () => {
-		fb.value;
-	});
+    bench('FastBox: fb.value', () => {
+        fb.value;
+    });
 });
 
 describe('primitive write', () => {
-	const manual = new ManualPrimitive();
-	const accessor = new AccessorPrimitive();
-	const bx = new Box(0);
-	const fb = new FastBox(0);
-	let raw = $state(0);
+    const manual = new ManualPrimitive();
+    const accessor = new AccessorPrimitive();
+    const bx = new Box(0);
+    const fb = new FastBox(0);
+    let raw = $state(0);
 
-	bench('Baseline: raw $state write', () => {
-		raw = raw + 1;
-	});
+    bench('Baseline: raw $state write', () => {
+        raw = raw + 1;
+    });
 
-	bench('Baseline: ManualPrimitive.value = i', () => {
-		manual.value = manual.value + 1;
-	});
+    bench('Baseline: ManualPrimitive.value = i', () => {
+        manual.value = manual.value + 1;
+    });
 
-	bench('Baseline: AccessorPrimitive.value = i', () => {
-		accessor.value = accessor.value + 1;
-	});
+    bench('Baseline: AccessorPrimitive.value = i', () => {
+        accessor.value = accessor.value + 1;
+    });
 
-	bench('Box: bx.value = i', () => {
-		bx.value = bx.value + 1;
-	});
+    bench('Box: bx.value = i', () => {
+        bx.value = bx.value + 1;
+    });
 
-	bench('FastBox: fb.value = i', () => {
-		fb.value = fb.value + 1;
-	});
+    bench('FastBox: fb.value = i', () => {
+        fb.value = fb.value + 1;
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -146,51 +146,51 @@ describe('primitive write', () => {
 // ---------------------------------------------------------------------------
 
 describe('object property read', () => {
-	const innerHolder = new (class {
-		obj = $state({ a: 1, b: 2, c: 3 });
-	})();
-	const bx = box({ a: 1, b: 2, c: 3 });
-	const fb = new FastBox({ a: 1, b: 2, c: 3 });
+    const innerHolder = new (class {
+        obj = $state({ a: 1, b: 2, c: 3 });
+    })();
+    const bx = box({ a: 1, b: 2, c: 3 });
+    const fb = new FastBox({ a: 1, b: 2, c: 3 });
 
-	bench('Baseline: innerHolder.obj.a (direct $state proxy)', () => {
-		innerHolder.obj.a;
-	});
+    bench('Baseline: innerHolder.obj.a (direct $state proxy)', () => {
+        innerHolder.obj.a;
+    });
 
-	bench('Box: bx.a (transparent forward)', () => {
-		bx.a;
-	});
+    bench('Box: bx.a (transparent forward)', () => {
+        bx.a;
+    });
 
-	bench('Box: bx.value.a (via .value)', () => {
-		bx.value.a;
-	});
+    bench('Box: bx.value.a (via .value)', () => {
+        bx.value.a;
+    });
 
-	bench('FastBox: fb.value.a (via .value)', () => {
-		fb.value.a;
-	});
+    bench('FastBox: fb.value.a (via .value)', () => {
+        fb.value.a;
+    });
 });
 
 describe('object property write', () => {
-	const innerHolder = new (class {
-		obj = $state({ a: 0 });
-	})();
-	const bx = box({ a: 0 });
-	const fb = new FastBox({ a: 0 });
+    const innerHolder = new (class {
+        obj = $state({ a: 0 });
+    })();
+    const bx = box({ a: 0 });
+    const fb = new FastBox({ a: 0 });
 
-	bench('Baseline: innerHolder.obj.a = i (direct $state proxy)', () => {
-		innerHolder.obj.a = innerHolder.obj.a + 1;
-	});
+    bench('Baseline: innerHolder.obj.a = i (direct $state proxy)', () => {
+        innerHolder.obj.a = innerHolder.obj.a + 1;
+    });
 
-	bench('Box: bx.a = i (transparent forward)', () => {
-		bx.a = bx.a + 1;
-	});
+    bench('Box: bx.a = i (transparent forward)', () => {
+        bx.a = bx.a + 1;
+    });
 
-	bench('Box: bx.value.a = i (via .value)', () => {
-		bx.value.a = bx.value.a + 1;
-	});
+    bench('Box: bx.value.a = i (via .value)', () => {
+        bx.value.a = bx.value.a + 1;
+    });
 
-	bench('FastBox: fb.value.a = i (via .value)', () => {
-		fb.value.a = fb.value.a + 1;
-	});
+    bench('FastBox: fb.value.a = i (via .value)', () => {
+        fb.value.a = fb.value.a + 1;
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -198,46 +198,46 @@ describe('object property write', () => {
 // ---------------------------------------------------------------------------
 
 describe('forwarded method call', () => {
-	class WithMethod {
-		count = 0;
-		inc() {
-			this.count += 1;
-		}
-	}
+    class WithMethod {
+        count = 0;
+        inc() {
+            this.count += 1;
+        }
+    }
 
-	const inner = new WithMethod();
-	const bx = box(new WithMethod());
-	const fb = new FastBox(new WithMethod());
+    const inner = new WithMethod();
+    const bx = box(new WithMethod());
+    const fb = new FastBox(new WithMethod());
 
-	bench('Baseline: inner.inc()', () => {
-		inner.inc();
-	});
+    bench('Baseline: inner.inc()', () => {
+        inner.inc();
+    });
 
-	bench('Box: bx.inc() (cached binding)', () => {
-		(bx as unknown as WithMethod).inc();
-	});
+    bench('Box: bx.inc() (cached binding)', () => {
+        (bx as unknown as WithMethod).inc();
+    });
 
-	bench('FastBox: fb.value.inc() (via .value)', () => {
-		fb.value.inc();
-	});
+    bench('FastBox: fb.value.inc() (via .value)', () => {
+        fb.value.inc();
+    });
 });
 
 describe('forwarded method identity lookup', () => {
-	const inner = { fn() {} };
-	const bx = box(inner);
-	const fb = new FastBox(inner);
+    const inner = { fn() {} };
+    const bx = box(inner);
+    const fb = new FastBox(inner);
 
-	bench('Baseline: inner.fn', () => {
-		inner.fn;
-	});
+    bench('Baseline: inner.fn', () => {
+        inner.fn;
+    });
 
-	bench('Box: bx.fn (cache hit)', () => {
-		(bx as unknown as typeof inner).fn;
-	});
+    bench('Box: bx.fn (cache hit)', () => {
+        (bx as unknown as typeof inner).fn;
+    });
 
-	bench('FastBox: fb.value.fn', () => {
-		fb.value.fn;
-	});
+    bench('FastBox: fb.value.fn', () => {
+        fb.value.fn;
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -245,29 +245,29 @@ describe('forwarded method identity lookup', () => {
 // ---------------------------------------------------------------------------
 
 describe('type guards (isNumber)', () => {
-	const bx = new Box(42);
-	const fb = new FastBox(42);
+    const bx = new Box(42);
+    const fb = new FastBox(42);
 
-	bench('Box: bx.isNumber()', () => {
-		bx.isNumber();
-	});
+    bench('Box: bx.isNumber()', () => {
+        bx.isNumber();
+    });
 
-	bench('FastBox: fb.isNumber()', () => {
-		fb.isNumber();
-	});
+    bench('FastBox: fb.isNumber()', () => {
+        fb.isNumber();
+    });
 });
 
 describe('type guards (isArray)', () => {
-	const bx = new Box([1, 2, 3]);
-	const fb = new FastBox([1, 2, 3]);
+    const bx = new Box([1, 2, 3]);
+    const fb = new FastBox([1, 2, 3]);
 
-	bench('Box: bx.isArray()', () => {
-		bx.isArray();
-	});
+    bench('Box: bx.isArray()', () => {
+        bx.isArray();
+    });
 
-	bench('FastBox: fb.isArray()', () => {
-		fb.isArray();
-	});
+    bench('FastBox: fb.isArray()', () => {
+        fb.isArray();
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -275,61 +275,61 @@ describe('type guards (isArray)', () => {
 // ---------------------------------------------------------------------------
 
 describe('snapshot', () => {
-	const holder = new (class {
-		obj = $state({ a: 1, b: { c: 2, d: [3, 4, 5] } });
-	})();
-	const bx = box({ a: 1, b: { c: 2, d: [3, 4, 5] } });
-	const fb = new FastBox({ a: 1, b: { c: 2, d: [3, 4, 5] } });
+    const holder = new (class {
+        obj = $state({ a: 1, b: { c: 2, d: [3, 4, 5] } });
+    })();
+    const bx = box({ a: 1, b: { c: 2, d: [3, 4, 5] } });
+    const fb = new FastBox({ a: 1, b: { c: 2, d: [3, 4, 5] } });
 
-	bench('Baseline: $state.snapshot(inner)', () => {
-		$state.snapshot(holder.obj);
-	});
+    bench('Baseline: $state.snapshot(inner)', () => {
+        $state.snapshot(holder.obj);
+    });
 
-	bench('Box: bx.snapshot()', () => {
-		bx.snapshot();
-	});
+    bench('Box: bx.snapshot()', () => {
+        bx.snapshot();
+    });
 
-	bench('FastBox: fb.snapshot()', () => {
-		fb.snapshot();
-	});
+    bench('FastBox: fb.snapshot()', () => {
+        fb.snapshot();
+    });
 });
 
 describe('JSON.stringify', () => {
-	const holder = new (class {
-		obj = $state({ a: 1, b: { c: 2 } });
-	})();
-	const bx = box({ a: 1, b: { c: 2 } });
-	const fb = new FastBox({ a: 1, b: { c: 2 } });
+    const holder = new (class {
+        obj = $state({ a: 1, b: { c: 2 } });
+    })();
+    const bx = box({ a: 1, b: { c: 2 } });
+    const fb = new FastBox({ a: 1, b: { c: 2 } });
 
-	bench('Baseline: JSON.stringify(inner)', () => {
-		JSON.stringify(holder.obj);
-	});
+    bench('Baseline: JSON.stringify(inner)', () => {
+        JSON.stringify(holder.obj);
+    });
 
-	bench('Box: JSON.stringify(bx)', () => {
-		JSON.stringify(bx);
-	});
+    bench('Box: JSON.stringify(bx)', () => {
+        JSON.stringify(bx);
+    });
 
-	bench('FastBox: JSON.stringify(fb)', () => {
-		JSON.stringify(fb);
-	});
+    bench('FastBox: JSON.stringify(fb)', () => {
+        JSON.stringify(fb);
+    });
 });
 
 describe('eager', () => {
-	const raw = $state(42);
-	const bx = new Box(42);
-	const fb = new FastBox(42);
+    const raw = $state(42);
+    const bx = new Box(42);
+    const fb = new FastBox(42);
 
-	bench('Baseline: raw $state read', () => {
-		raw;
-	});
+    bench('Baseline: raw $state read', () => {
+        raw;
+    });
 
-	bench('Box: bx.eager()', () => {
-		bx.eager();
-	});
+    bench('Box: bx.eager()', () => {
+        bx.eager();
+    });
 
-	bench('FastBox: fb.eager()', () => {
-		fb.eager();
-	});
+    bench('FastBox: fb.eager()', () => {
+        fb.eager();
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -343,89 +343,89 @@ describe('eager', () => {
 // ---------------------------------------------------------------------------
 
 describe('cross-boundary mutation', () => {
-	const manual = new ManualPrimitive();
-	const accessor = new AccessorPrimitive();
-	const objWrapper = $state({ value: 0 });
-	const bx = new Box(0);
-	const fb = new FastBox(0);
+    const manual = new ManualPrimitive();
+    const accessor = new AccessorPrimitive();
+    const objWrapper = $state({ value: 0 });
+    const bx = new Box(0);
+    const fb = new FastBox(0);
 
-	function mutateManual(m: ManualPrimitive) {
-		m.value += 1;
-	}
-	function mutateAccessor(a: AccessorPrimitive) {
-		a.value += 1;
-	}
-	function mutateWrapper(w: { value: number }) {
-		w.value += 1;
-	}
-	function mutateBox(b: Box<number>) {
-		b.value += 1;
-	}
-	function mutateFast(b: FastBox<number>) {
-		b.value += 1;
-	}
+    function mutateManual(m: ManualPrimitive) {
+        m.value += 1;
+    }
+    function mutateAccessor(a: AccessorPrimitive) {
+        a.value += 1;
+    }
+    function mutateWrapper(w: { value: number }) {
+        w.value += 1;
+    }
+    function mutateBox(b: Box<number>) {
+        b.value += 1;
+    }
+    function mutateFast(b: FastBox<number>) {
+        b.value += 1;
+    }
 
-	bench('Baseline: $state field (cross-boundary)', () => {
-		mutateManual(manual);
-	});
+    bench('Baseline: $state field (cross-boundary)', () => {
+        mutateManual(manual);
+    });
 
-	bench('Baseline: accessor (cross-boundary)', () => {
-		mutateAccessor(accessor);
-	});
+    bench('Baseline: accessor (cross-boundary)', () => {
+        mutateAccessor(accessor);
+    });
 
-	bench('Baseline: $state({ value }) (cross-boundary)', () => {
-		mutateWrapper(objWrapper);
-	});
+    bench('Baseline: $state({ value }) (cross-boundary)', () => {
+        mutateWrapper(objWrapper);
+    });
 
-	bench('Box: cross-boundary', () => {
-		mutateBox(bx);
-	});
+    bench('Box: cross-boundary', () => {
+        mutateBox(bx);
+    });
 
-	bench('FastBox: cross-boundary', () => {
-		mutateFast(fb);
-	});
+    bench('FastBox: cross-boundary', () => {
+        mutateFast(fb);
+    });
 });
 
 describe('cross-boundary read from class instance', () => {
-	class StoreWithField {
-		count = $state(0);
-	}
-	class StoreWithAccessor {
-		#cell = $state(0);
-		get count() {
-			return this.#cell;
-		}
-		set count(v: number) {
-			this.#cell = v;
-		}
-	}
-	class StoreWithBox {
-		count = new Box(0);
-	}
-	class StoreWithFastBox {
-		count = new FastBox(0);
-	}
+    class StoreWithField {
+        count = $state(0);
+    }
+    class StoreWithAccessor {
+        #cell = $state(0);
+        get count() {
+            return this.#cell;
+        }
+        set count(v: number) {
+            this.#cell = v;
+        }
+    }
+    class StoreWithBox {
+        count = new Box(0);
+    }
+    class StoreWithFastBox {
+        count = new FastBox(0);
+    }
 
-	const sf = new StoreWithField();
-	const sa = new StoreWithAccessor();
-	const sb = new StoreWithBox();
-	const sfb = new StoreWithFastBox();
+    const sf = new StoreWithField();
+    const sa = new StoreWithAccessor();
+    const sb = new StoreWithBox();
+    const sfb = new StoreWithFastBox();
 
-	bench('Baseline: store.count (class $state field)', () => {
-		sf.count;
-	});
+    bench('Baseline: store.count (class $state field)', () => {
+        sf.count;
+    });
 
-	bench('Baseline: store.count (class accessor)', () => {
-		sa.count;
-	});
+    bench('Baseline: store.count (class accessor)', () => {
+        sa.count;
+    });
 
-	bench('Box: store.count.value', () => {
-		sb.count.value;
-	});
+    bench('Box: store.count.value', () => {
+        sb.count.value;
+    });
 
-	bench('FastBox: store.count.value', () => {
-		sfb.count.value;
-	});
+    bench('FastBox: store.count.value', () => {
+        sfb.count.value;
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -433,56 +433,56 @@ describe('cross-boundary read from class instance', () => {
 // ---------------------------------------------------------------------------
 
 describe('bulk: 1000 instance construction', () => {
-	bench('Baseline: 1000 ManualPrimitive instances', () => {
-		const list: ManualPrimitive[] = [];
-		for (let i = 0; i < 1000; i++) list.push(new ManualPrimitive());
-	});
+    bench('Baseline: 1000 ManualPrimitive instances', () => {
+        const list: ManualPrimitive[] = [];
+        for (let i = 0; i < 1000; i++) list.push(new ManualPrimitive());
+    });
 
-	bench('Box: 1000 new Box(i)', () => {
-		const list: Box<number>[] = [];
-		for (let i = 0; i < 1000; i++) list.push(new Box(i));
-	});
+    bench('Box: 1000 new Box(i)', () => {
+        const list: Box<number>[] = [];
+        for (let i = 0; i < 1000; i++) list.push(new Box(i));
+    });
 
-	bench('FastBox: 1000 new FastBox(i)', () => {
-		const list: FastBox<number>[] = [];
-		for (let i = 0; i < 1000; i++) list.push(new FastBox(i));
-	});
+    bench('FastBox: 1000 new FastBox(i)', () => {
+        const list: FastBox<number>[] = [];
+        for (let i = 0; i < 1000; i++) list.push(new FastBox(i));
+    });
 });
 
 describe('bulk: 10k value reads', () => {
-	const manual = new ManualPrimitive();
-	const bx = new Box(0);
-	const fb = new FastBox(0);
+    const manual = new ManualPrimitive();
+    const bx = new Box(0);
+    const fb = new FastBox(0);
 
-	bench('Baseline: 10k manual.value reads', () => {
-		for (let i = 0; i < 10_000; i++) manual.value;
-	});
+    bench('Baseline: 10k manual.value reads', () => {
+        for (let i = 0; i < 10_000; i++) manual.value;
+    });
 
-	bench('Box: 10k bx.value reads', () => {
-		for (let i = 0; i < 10_000; i++) bx.value;
-	});
+    bench('Box: 10k bx.value reads', () => {
+        for (let i = 0; i < 10_000; i++) bx.value;
+    });
 
-	bench('FastBox: 10k fb.value reads', () => {
-		for (let i = 0; i < 10_000; i++) fb.value;
-	});
+    bench('FastBox: 10k fb.value reads', () => {
+        for (let i = 0; i < 10_000; i++) fb.value;
+    });
 });
 
 describe('bulk: 10k forwarded prop reads', () => {
-	const holder = new (class {
-		obj = $state({ count: 0 });
-	})();
-	const bx = box({ count: 0 });
-	const fb = new FastBox({ count: 0 });
+    const holder = new (class {
+        obj = $state({ count: 0 });
+    })();
+    const bx = box({ count: 0 });
+    const fb = new FastBox({ count: 0 });
 
-	bench('Baseline: 10k holder.obj.count reads', () => {
-		for (let i = 0; i < 10_000; i++) holder.obj.count;
-	});
+    bench('Baseline: 10k holder.obj.count reads', () => {
+        for (let i = 0; i < 10_000; i++) holder.obj.count;
+    });
 
-	bench('Box: 10k bx.count reads (transparent)', () => {
-		for (let i = 0; i < 10_000; i++) bx.count;
-	});
+    bench('Box: 10k bx.count reads (transparent)', () => {
+        for (let i = 0; i < 10_000; i++) bx.count;
+    });
 
-	bench('FastBox: 10k fb.value.count reads', () => {
-		for (let i = 0; i < 10_000; i++) fb.value.count;
-	});
+    bench('FastBox: 10k fb.value.count reads', () => {
+        for (let i = 0; i < 10_000; i++) fb.value.count;
+    });
 });

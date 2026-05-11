@@ -55,13 +55,13 @@ Svelte 5 makes reactivity feel like plain JavaScript, but there is one rough edg
 
 ```svelte
 <script>
-	let count = $state(0);
+    let count = $state(0);
 
-	function increment(c) {
-		c++; // reassigns the local arg, the outer count never changes
-	}
+    function increment(c) {
+        c++; // reassigns the local arg, the outer count never changes
+    }
 
-	increment(count);
+    increment(count);
 </script>
 ```
 
@@ -74,7 +74,7 @@ The Svelte 5 ecosystem has converged on a few workarounds. They all work, and th
 ```js
 let counter = $state({ value: 0 });
 function increment(c) {
-	c.value++;
+    c.value++;
 }
 increment(counter);
 ```
@@ -85,11 +85,11 @@ This is the smallest fix, but the wrapper object has no identity, no type, and n
 
 ```js
 class Counter {
-	value = $state(0);
+    value = $state(0);
 }
 const counter = new Counter();
 function increment(c) {
-	c.value++;
+    c.value++;
 }
 ```
 
@@ -99,13 +99,13 @@ This is cleaner. You get a real type and can attach methods. The downside: you w
 
 ```js
 class Counter {
-	#cell = $state(0);
-	get value() {
-		return this.#cell;
-	}
-	set value(v) {
-		this.#cell = v;
-	}
+    #cell = $state(0);
+    get value() {
+        return this.#cell;
+    }
+    set value(v) {
+        this.#cell = v;
+    }
 }
 ```
 
@@ -117,7 +117,7 @@ This solves encapsulation, but every reactive primitive becomes a 6-line class. 
 import { writable } from 'svelte/store';
 const counter = writable(0);
 function increment(c) {
-	c.update((n) => n + 1);
+    c.update((n) => n + 1);
 }
 ```
 
@@ -130,7 +130,7 @@ import { box } from '@coroama/svelte-box';
 
 const counter = box(0);
 function increment(c) {
-	c.value++;
+    c.value++;
 }
 increment(counter);
 ```
@@ -161,7 +161,7 @@ import { fastbox, type FastBox } from '@coroama/svelte-box';
 const count = fastbox(0);
 
 function increment(c: FastBox<number>) {
-	c.value += 1;
+    c.value += 1;
 }
 ```
 
@@ -185,17 +185,17 @@ If you ever wrote `function increment(c) { c.value++ }` and had to wrap your val
 
 ```svelte
 <script>
-	import { box } from '@coroama/svelte-box';
+    import { box } from '@coroama/svelte-box';
 
-	const count = box(0);
+    const count = box(0);
 
-	function increment(c) {
-		c.value += 1;
-	}
+    function increment(c) {
+        c.value += 1;
+    }
 </script>
 
 <button onclick={() => increment(count)}>
-	count: {count.value}
+    count: {count.value}
 </button>
 ```
 
@@ -218,9 +218,9 @@ The `box(...)` factory returns a `Boxed<T>` type which forwards property access 
 
 ```svelte
 <script>
-	import { box } from '@coroama/svelte-box';
+    import { box } from '@coroama/svelte-box';
 
-	const user = box({ name: 'Ada', age: 36 });
+    const user = box({ name: 'Ada', age: 36 });
 </script>
 
 <p>{user.name}</p>
@@ -257,10 +257,10 @@ A regular `Map` or `Set` is not reactive. Svelte ships `SvelteMap` and `SvelteSe
 
 ```svelte
 <script>
-	import { boxedMap, boxedSet } from '@coroama/svelte-box';
+    import { boxedMap, boxedSet } from '@coroama/svelte-box';
 
-	const tags = boxedSet(['svelte', 'reactive']);
-	const scores = boxedMap([['ada', 100]]);
+    const tags = boxedSet(['svelte', 'reactive']);
+    const scores = boxedMap([['ada', 100]]);
 </script>
 
 <button onclick={() => tags.add('new')}>add</button>
@@ -271,10 +271,10 @@ For the FastBox variant, use `fastBoxedMap` and `fastBoxedSet`. There is no Prox
 
 ```svelte
 <script>
-	import { fastBoxedMap, fastBoxedSet } from '@coroama/svelte-box';
+    import { fastBoxedMap, fastBoxedSet } from '@coroama/svelte-box';
 
-	const tags = fastBoxedSet(['svelte', 'reactive']);
-	const scores = fastBoxedMap([['ada', 100]]);
+    const tags = fastBoxedSet(['svelte', 'reactive']);
+    const scores = fastBoxedMap([['ada', 100]]);
 </script>
 
 <button onclick={() => tags.value.add('new')}>add</button>
@@ -293,7 +293,7 @@ import { box, type Box } from '@coroama/svelte-box';
 const b: Box<unknown> = box<unknown>(42);
 
 if (b.isNumber()) {
-	b.value.toFixed(2); // b.value is now typed as number
+    b.value.toFixed(2); // b.value is now typed as number
 }
 ```
 
@@ -385,7 +385,7 @@ user.name; // forwarding visible to TS
 
 // Consuming: parameter types use the bare Box<T>. Boxed<T> assigns to Box<T>.
 function rename(u: Box<{ name: string }>, name: string) {
-	u.value.name = name;
+    u.value.name = name;
 }
 rename(user, 'Grace');
 ```
@@ -400,8 +400,8 @@ Destructuring a primitive box gives you a snapshot, not the live cell. Same Svel
 
 ```svelte
 <script>
-	const count = box(0);
-	const { value } = count; // captures 0 right now, not reactive
+    const count = box(0);
+    const { value } = count; // captures 0 right now, not reactive
 </script>
 ```
 
@@ -442,17 +442,17 @@ type Todo = { id: string; text: string; done: boolean };
 type User = { id: string; name: string };
 
 class TodoStore {
-	todos = box<Todo[]>([]);
-	filter = box<'all' | 'active' | 'done'>('all');
-	currentUser = box<User | null>(null);
+    todos = box<Todo[]>([]);
+    filter = box<'all' | 'active' | 'done'>('all');
+    currentUser = box<User | null>(null);
 
-	add(todo: Todo) {
-		this.todos.value = [...this.todos.value, todo];
-	}
+    add(todo: Todo) {
+        this.todos.value = [...this.todos.value, todo];
+    }
 
-	clear() {
-		this.todos.value = [];
-	}
+    clear() {
+        this.todos.value = [];
+    }
 }
 
 export const store = new TodoStore();
@@ -465,12 +465,12 @@ Children read the boxes through the class. Reactivity flows through normally.
 ```svelte
 <!-- TodoList.svelte -->
 <script lang="ts">
-	import type { TodoStore } from './store';
-	let { store }: { store: TodoStore } = $props();
+    import type { TodoStore } from './store';
+    let { store }: { store: TodoStore } = $props();
 </script>
 
 {#each store.todos.value as todo (todo.id)}
-	<TodoItem {todo} />
+    <TodoItem {todo} />
 {/each}
 <p>Filter: {store.filter.value}</p>
 ```
@@ -484,7 +484,7 @@ When a child only needs one piece of state, hand it just that piece. The child w
 ```svelte
 <!-- App.svelte -->
 <script>
-	import { store } from './store';
+    import { store } from './store';
 </script>
 
 <FilterPicker filter={store.filter} />
@@ -494,14 +494,14 @@ When a child only needs one piece of state, hand it just that piece. The child w
 ```svelte
 <!-- FilterPicker.svelte -->
 <script lang="ts">
-	import type { Box } from '@coroama/svelte-box';
-	let { filter }: { filter: Box<'all' | 'active' | 'done'> } = $props();
+    import type { Box } from '@coroama/svelte-box';
+    let { filter }: { filter: Box<'all' | 'active' | 'done'> } = $props();
 </script>
 
 <select bind:value={filter.value}>
-	<option value="all">All</option>
-	<option value="active">Active</option>
-	<option value="done">Done</option>
+    <option value="all">All</option>
+    <option value="active">Active</option>
+    <option value="done">Done</option>
 </select>
 ```
 
@@ -515,15 +515,15 @@ If a single piece of state has its own behavior, subclass `Box` and add methods.
 import { Box } from '@coroama/svelte-box';
 
 class Counter extends Box<number> {
-	increment() {
-		this.value += 1;
-	}
-	decrement() {
-		this.value -= 1;
-	}
-	reset() {
-		this.value = 0;
-	}
+    increment() {
+        this.value += 1;
+    }
+    decrement() {
+        this.value -= 1;
+    }
+    reset() {
+        this.value = 0;
+    }
 }
 
 const counter = new Counter(0);
@@ -540,7 +540,7 @@ Both directions work and are sometimes useful. `$state` is only available in `.s
 ```ts
 // Box inside $state: a re-assignable handle inside a reactive object
 const view = $state({
-	selected: box<string | undefined>(undefined)
+    selected: box<string | undefined>(undefined)
 });
 
 // $state inside Box: wrap a pre-existing reactive object so it can be passed by reference
@@ -558,13 +558,13 @@ Reading `box.value` always returns the current value at that moment. If you capt
 
 ```ts
 async function tick(b: Box<number>) {
-	const before = b.value; // snapshot at this point
-	await delay(1000);
-	// b.value may have changed during the await
-	const after = b.value;
-	if (before !== after) {
-		// someone else mutated the box while we were waiting
-	}
+    const before = b.value; // snapshot at this point
+    await delay(1000);
+    // b.value may have changed during the await
+    const after = b.value;
+    if (before !== after) {
+        // someone else mutated the box while we were waiting
+    }
 }
 ```
 
@@ -577,13 +577,13 @@ const status = box<'idle' | 'loading' | 'ready' | 'error'>('idle');
 const data = box<Data | null>(null);
 
 async function load() {
-	status.value = 'loading';
-	try {
-		data.value = await fetchData();
-		status.value = 'ready';
-	} catch {
-		status.value = 'error';
-	}
+    status.value = 'loading';
+    try {
+        data.value = await fetchData();
+        status.value = 'ready';
+    } catch {
+        status.value = 'error';
+    }
 }
 ```
 
@@ -595,11 +595,11 @@ Components reading `status.value` see each transition as the function progresses
 
 ```ts
 $effect(() => {
-	const id = userId.value; // tracked
-	(async () => {
-		const user = await fetchUser(id); // not tracked, that is fine
-		profile.value = user;
-	})();
+    const id = userId.value; // tracked
+    (async () => {
+        const user = await fetchUser(id); // not tracked, that is fine
+        profile.value = user;
+    })();
 });
 ```
 
@@ -619,10 +619,10 @@ JavaScript is single-threaded, so there are no truly concurrent writes. But two 
 let userToken = 0;
 
 async function loadById(id: string) {
-	const myToken = ++userToken;
-	const next = await fetchUser(id);
-	if (myToken !== userToken) return; // a newer call superseded this one
-	user.value = next;
+    const myToken = ++userToken;
+    const next = await fetchUser(id);
+    if (myToken !== userToken) return; // a newer call superseded this one
+    user.value = next;
 }
 ```
 
@@ -723,18 +723,18 @@ A Box is a runtime object with a Proxy. It is not serializable on its own, so yo
 ```ts
 // +page.ts
 export async function load() {
-	return {
-		user: await fetchUser() // plain object
-	};
+    return {
+        user: await fetchUser() // plain object
+    };
 }
 ```
 
 ```svelte
 <!-- +page.svelte -->
 <script lang="ts">
-	import { box } from '@coroama/svelte-box';
-	let { data } = $props();
-	const user = box(data.user); // box on the client
+    import { box } from '@coroama/svelte-box';
+    let { data } = $props();
+    const user = box(data.user); // box on the client
 </script>
 ```
 

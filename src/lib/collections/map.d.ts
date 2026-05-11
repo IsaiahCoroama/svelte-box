@@ -43,5 +43,5 @@ export declare function boxedMap<K, V>(entries?: Iterable<readonly [K, V]> | nul
  * @param entries Optional initial entries, same shape as `Map`'s constructor.
  */
 export declare function fastBoxedMap<K, V>(
-	entries?: Iterable<readonly [K, V]> | null
+    entries?: Iterable<readonly [K, V]> | null
 ): FastBoxedMap<K, V>;
