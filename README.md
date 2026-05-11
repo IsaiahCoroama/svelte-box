@@ -16,7 +16,7 @@ bun add @coroama/svelte-box
 
 Peer dependency: `svelte ^5.0.0`. The compiled package runs anywhere a modern JS runtime does. Node 20.6 or newer is only needed if you are building from source.
 
-**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The same SvelteKit playground that lives under `src/routes/`, redeployed by GitHub Pages after every green CI run on `master`. Try `Box` and `FastBox` side-by-side without cloning the repo.
+**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The same SvelteKit playground that lives under `src/routes/`, redeployed by GitHub Pages after a green CI run on `master` whose merge touched `src/`, `static/`, or one of the build config files. Docs-only merges keep CI happy but skip the redeploy. Try `Box` and `FastBox` side-by-side without cloning the repo.
 
 ## Contents
 
@@ -819,6 +819,7 @@ The repository ships:
 - A GitHub Actions CI pipeline that runs lint, type-check, build, and the test suite on every push to `master` and on every pull request. Tests run on Linux, macOS, and Windows via a matrix; a single `ci-all-greens` aggregator job is the required check for branch protection and reports success even when the pipeline is skipped because only docs changed.
 - A post-merge benchmark workflow that runs after pull requests touching `src/lib`, `benchmarking/`, or the workflow itself merge into `master`. Uploads results as artifacts and posts a summary comment on the merged PR for regression review.
 - A separate publish workflow that re-runs the full test suite, verifies the release tag matches the package version, and publishes to npm via [Trusted Publisher (OIDC)](https://docs.npmjs.com/trusted-publishers) with provenance attestations on every GitHub release. No long-lived npm token is stored; publishes are gated behind a GitHub Environment with required approval.
+- A GitHub Pages workflow that redeploys the live demo at <https://isaiahcoroama.github.io/svelte-box/> after CI completes successfully on `master`, gated on the merge actually touching `src/`, `static/`, or a build config file. Docs-only merges skip the redeploy so the Pages site stays at the most recent bundle that actually changed.
 
 Issues, contributions, and the changelog: <https://github.com/IsaiahCoroama/svelte-box>. The changelog follows the [Keep a Changelog](https://keepachangelog.com) format. Intended cadence is one entry per release; anything that changes the public surface (exports listed in this README, runtime behavior of those exports, or types of those exports) is called out under that release entry.
 
