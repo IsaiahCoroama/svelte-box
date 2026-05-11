@@ -15,11 +15,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Changed
 
 - **Construction throughput**: helper methods and type guards on `BaseBox` moved from per-instance arrow fields to prototype methods. `new FastBox(...)` is roughly 20-22% faster, `new Box(...)` is roughly 19-20% faster. The `FastBox`-vs-`Box` ratio stays around 1.4-1.5x depending on payload. Trade-off: detached helper reads (`const g = box.get; g()`) now lose `this`; call helpers on the box or wrap them as `() => box.value`.
+- **Forwarded property reads**: the Box proxy's own-key membership cache now stores both positive and negative lookups (previously only positives were cached, so every forwarded read re-walked the prototype chain). The 10k tight-loop forwarded-prop read benchmark improved from ~2.5x slower than the inner `$state` proxy to ~1.58x slower. Single forwarded reads (`bx.foo`) are now within noise of the baseline.
+- `FORWARD_FIRST` collision list trimmed to `{get, set}`; `del` was dead (no common collection exposes `.del`).
 - Docs and JSDoc examples now prefer the `box(...)` and `fastbox(...)` factories over `new Box(...)` / `new FastBox(...)` for consistency. The class constructors remain public; only the recommended call style changed.
 
 ### Fixed
 
 - Internal definition of `PrimitiveType` was the full `typeof` tag union (including `'object'` and `'function'`) instead of the actual primitive value types. Not previously re-exported from the barrel, so no consumer could have imported it. Fixed before adding it to the public surface.
+- **`Box` primitive-forwarding doc was wrong.** `Box<T>` JSDoc claimed `String.prototype.toUpperCase` "still works at runtime" on a primitive box. False: the proxy's `get` trap returns `undefined` for any property read when the inner value is not object-like. Doc now states primitive methods are not forwarded and points callers at `.value.<method>()`. Behavior unchanged; only the doc was wrong.
+- `FastBox`/`map.d.ts`/`set.d.ts` JSDoc now warns about the destructive helper-name collision: calling `fb.set(k, v)` on a `FastBox<Map<K, V>>` overwrites `.value` with `k` (drops `v`) because `BaseBox.set` takes one argument. Always reach inner methods through `.value`.
 - **`LICENSE` file replaced with MIT text.** The 0.1.0 tarball shipped a GPL-3.0 `LICENSE` file by mistake, even though `package.json` and the README correctly declared MIT. 0.2.0 ships the MIT license text so the file matches the long-stated metadata. The project's license has been MIT throughout; this is a correction of the bundled file, not a license change.
 
 ### Documentation
@@ -30,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Tests
 
 - Browser-mode Vitest suite split per module: `tests/box.svelte.test.ts` (Box), `tests/fastbox.svelte.test.ts` (FastBox plus `fastbox` factory), `tests/collections/map.svelte.test.ts` (`boxedMap`, `fastBoxedMap`, Map JSON.stringify), and `tests/collections/set.svelte.test.ts` (`boxedSet`, `fastBoxedSet`, Set JSON.stringify). Benchmark suite split the same way: `benchmarking/box.svelte.bench.ts` for Box/FastBox, `benchmarking/collections/map.svelte.bench.ts` and `benchmarking/collections/set.svelte.bench.ts` for collection-specific groups.
+- New tests pin the apply-trap `this` contract (pre-bound functions keep their bound `this`; unbound functions take whatever `thisArg` the caller passes through) and the primitive-non-forwarding behavior documented above.
 
 ## [0.1.0] - 2026-05-09
 
@@ -79,8 +84,8 @@ First public release.
 - Hand-written `.d.ts` siblings (honored by `@sveltejs/package`) so polymorphic-this guards and intersection-typed `Boxed<T>` survive packaging.
 - 78-test browser-mode Vitest suite (`@vitest/browser-playwright`, headless Chromium) covering reactivity, proxy semantics, type guards, collection forwarding, `$derived` integration, snapshot, eager, JSON.stringify and structured-clone behaviour, cross-boundary passing through function and class layers, and FastBox no-forwarding asserts.
 - Three-way Baseline-vs-Box-vs-FastBox benchmark suite (`benchmarking/box.svelte.bench.ts`). 22 describe groups covering construction, primitive read/write, forwarded property and method access, type guards, snapshot, JSON.stringify, eager, collection operations, cross-boundary mutation, and bulk stress paths.
-- GitHub Actions CI (lint, type-check, build, test on every push and PR).
-- Scheduled benchmark workflow (Mondays 06:00 UTC, plus on-demand and on PRs touching `src/lib`); uploads `bench-results.json` as a CI artifact and posts a comment for regression review.
+- GitHub Actions CI (lint, type-check, build, test on every push and PR). Tests run cross-platform via a matrix over Linux, macOS, and Windows; an `ci-all-greens` aggregator job rolls the matrix legs and the other jobs into one required check suitable for branch protection.
+- Post-merge benchmark workflow that runs after pull requests touching `src/lib`, `benchmarking/`, or the workflow itself merge into `master`. Uploads bench output as a CI artifact and posts a summary comment on the merged PR for regression review.
 - Publish workflow that re-runs the full test suite, verifies the release tag matches `package.json` version (with optional `v` prefix stripped), runs `prepack`, and publishes to npm with provenance attestations.
 - GitHub Pages deploy of the SvelteKit playground via `@sveltejs/adapter-static`. Gated on CI success on `master`. Live at <https://isaiahcoroama.github.io/svelte-box/>.
 
