@@ -17,8 +17,8 @@
 <section>
 	<h2><a href={resolve('/fastbox')}>/fastbox</a></h2>
 	<p>
-		Plain class, no proxy. Same <code>.value</code> reactivity, same helpers and type guards. Faster
-		to construct, no transparent forwarding. Reach inner properties through
+		Plain class, no proxy. Same <code>.value</code> reactivity, same helpers and type guards.
+		Faster to construct, no transparent forwarding. Reach inner properties through
 		<code>.value</code>.
 	</p>
 </section>
