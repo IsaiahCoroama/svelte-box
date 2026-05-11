@@ -19,16 +19,7 @@
  */
 
 import { describe, bench } from 'vitest';
-import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import {
-	Box,
-	FastBox,
-	box,
-	boxedMap,
-	boxedSet,
-	fastBoxedMap,
-	fastBoxedSet
-} from '../src/lib/index.js';
+import { Box, FastBox, box } from '../src/lib/index.js';
 
 // $state can only appear as a variable initializer or class field, never as
 // a free expression. The wrapper classes below let us compare per-instance
@@ -342,64 +333,9 @@ describe('eager', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Collections
+// Collection benchmarks live in `benchmarking/collections/map.svelte.bench.ts`
+// and `benchmarking/collections/set.svelte.bench.ts` to mirror the lib layout.
 // ---------------------------------------------------------------------------
-
-describe('Map.set', () => {
-	const sm = new SvelteMap<string, number>();
-	const bm = boxedMap<string, number>();
-	const fbm = fastBoxedMap<string, number>();
-
-	bench('Baseline: SvelteMap.set(k, v)', () => {
-		sm.set('k', 1);
-	});
-
-	bench('Box: boxedMap.set(k, v) (forwarded)', () => {
-		bm.set('k', 1);
-	});
-
-	bench('FastBox: fastBoxedMap.value.set(k, v)', () => {
-		fbm.value.set('k', 1);
-	});
-});
-
-describe('Map.get', () => {
-	const sm = new SvelteMap<string, number>([['k', 1]]);
-	const bm = boxedMap<string, number>([['k', 1]]);
-	const fbm = fastBoxedMap<string, number>([['k', 1]]);
-
-	bench('Baseline: SvelteMap.get(k)', () => {
-		sm.get('k');
-	});
-
-	bench('Box: boxedMap.get(k) (forwarded)', () => {
-		bm.get('k');
-	});
-
-	bench('FastBox: fastBoxedMap.value.get(k)', () => {
-		fbm.value.get('k');
-	});
-});
-
-describe('Set.add', () => {
-	const ss = new SvelteSet<number>();
-	const bs = boxedSet<number>();
-	const fbs = fastBoxedSet<number>();
-	let i = 0;
-
-	// Wrap with `% 10_000` so the set size stays bounded across iterations.
-	bench('Baseline: SvelteSet.add(i % 10_000)', () => {
-		ss.add(i++ % 10_000);
-	});
-
-	bench('Box: boxedSet.add(i % 10_000) (forwarded)', () => {
-		bs.add(i++ % 10_000);
-	});
-
-	bench('FastBox: fastBoxedSet.value.add(i % 10_000)', () => {
-		fbs.value.add(i++ % 10_000);
-	});
-});
 
 // ---------------------------------------------------------------------------
 // Cross-boundary: pass to function and mutate.
