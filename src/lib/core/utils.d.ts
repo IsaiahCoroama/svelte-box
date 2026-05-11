@@ -1,6 +1,12 @@
-declare const _typeof: <T>(value: T) => typeof value;
-
-export type PrimitiveType = ReturnType<typeof _typeof>;
+/**
+ * Union of every primitive value type. Matches the values for which
+ * `box.isPrimitive()` returns `true` and which `BaseBox.isPrimitive()`
+ * narrows the boxed value to.
+ *
+ * Functions and non-null objects are excluded. `null` and `undefined` are
+ * included because ECMAScript classes both as primitive values.
+ */
+export type PrimitiveType = string | number | bigint | boolean | symbol | null | undefined;
 
 /**
  * A `{ value: T }` shape. Used by the type guards on {@link BaseBox} as the
@@ -13,5 +19,5 @@ export type PrimitiveType = ReturnType<typeof _typeof>;
  */
 export type BoxCell<T> = { value: T };
 
-export declare const isFunction: (v: unknown) => v is (...args: unknown[]) => unknown;
-export declare const isObjectLike: (v: unknown) => v is object;
+export declare function isFunction(v: unknown): v is (...args: unknown[]) => unknown;
+export declare function isObjectLike(v: unknown): v is object;
