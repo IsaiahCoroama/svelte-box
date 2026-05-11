@@ -56,4 +56,17 @@ jobs:
 
       - run: bun run prepack
 
-      - run: npm publish --provenance --access public
+      - name: Publish to npm
+        # SemVer pre-releases (any version containing a hyphen, e.g.
+        # 0.2.0-rc.0) ship under the `next` dist-tag so they do not become
+        # the default for `npm install @coroama/svelte-box`. Final releases
+        # keep going to `latest` as usual.
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [[ "$PKG_VERSION" == *-* ]]; then
+            echo "Pre-release detected ($PKG_VERSION) -> publishing under dist-tag 'next'"
+            npm publish --provenance --access public --tag next
+          else
+            echo "Final release ($PKG_VERSION) -> publishing under dist-tag 'latest'"
+            npm publish --provenance --access public
+          fi
