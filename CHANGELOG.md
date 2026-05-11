@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-11
+
+Documentation-only patch release. Refreshes the README on the npm package page to match the as-shipped state of v0.2.0. No runtime, type, or API changes.
+
+### Documentation
+
+- Corrected the type-guard predicate description (`this is this & BoxCell<X>`, not `this is Box<...>`).
+- Reworded the FastBox `instanceof` claim: it uses the plain prototype-chain check, not proxy-mediated propagation.
+- Refreshed the bundle-size / tree-shaking table to reflect the split between `collections/map.js` and `collections/set.js` (importing `boxedMap` no longer pulls in `SvelteSet`, and vice versa).
+- Dropped `del` from the helper-shadowing caveat (no longer in `FORWARD_FIRST`) and added a separate caveat for the destructive collision on `FastBox`.
+- Refreshed status-and-testing bullets: split bench/test files listed individually, CI push trigger is `master`-only, publish workflow described as using npm Trusted Publisher (OIDC) with a GitHub Environment gate, new bullet for the source-gated Pages workflow.
+- Corrected the line-count claim under "Bus factor" (~790, not ~650).
+- Updated the Live demo paragraph and the Pages bullet to describe the new source-only deploy gate.
+
+### Tooling and infrastructure
+
+- CI `Detect source changes` job now sets `predicate-quantifier: 'every'` on `dorny/paths-filter`. Without it, the default `some` quantifier matched every file against any single negation pattern, so doc-only PRs still ran the full pipeline. Fix is internal to the workflow; no consumer impact.
+- Pages workflow now gates the deploy on the merge actually touching `src/`, `static/`, or a build config file. Docs-only merges no longer redeploy a byte-identical bundle.
+
 ## [0.2.0] - 2026-05-11
 
 ### Added
@@ -95,6 +114,7 @@ First public release.
 - AGENTS.md with source layout, class hierarchy, type-safety details, build pipeline, and contributor expectations.
 - SvelteKit playground at `src/routes/` with `/`, `/box`, and `/fastbox` routes for side-by-side comparison.
 
-[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/IsaiahCoroama/svelte-box/releases/tag/v0.1.0
