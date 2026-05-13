@@ -9,6 +9,8 @@ class MyBox<T> extends Box<T> {
     }
 }
 
+class LateProtoBox<T> extends Box<T> {}
+
 class Point {
     x: number;
     y: number;
@@ -653,6 +655,84 @@ describe('Box: eager', () => {
         const u = box({ name: 'Ada' });
         const eager = u.eager();
         expect(eager.name).toBe('Ada');
+    });
+});
+
+describe('Box: proxy trap coverage', () => {
+    it('has trap reports own helper keys, inner keys, and non-configurable target keys', () => {
+        const b = box<{ a?: number }>({ a: 1 });
+
+        // Own helper (lives on Box.prototype).
+        expect('set' in b).toBe(true);
+        expect('value' in b).toBe(true);
+
+        // Inner key.
+        expect('a' in b).toBe(true);
+
+        // Absent on both inner and own surface.
+        expect('missing' in b).toBe(false);
+
+        // Non-configurable target key. The shared PROXY_TARGET is a function,
+        // so `prototype` is a non-configurable own property of the target and
+        // the has trap must report it.
+        expect('prototype' in b).toBe(true);
+    });
+
+    it('has trap returns false on a primitive inner for absent keys', () => {
+        // Inner is not object-like, so `prop in inner` short-circuits to false
+        // and we cover the `isObjectLike(inner) && prop in inner` branch.
+        const b = box(0);
+        expect('foo' in b).toBe(false);
+    });
+
+    it('Object.getOwnPropertyDescriptor routes Box-owned keys through self and inner keys through the inner', () => {
+        const b = box({ a: 1 });
+
+        // `value` and `set` live on the prototype, not as own descriptors on
+        // the instance, so the trap's `isOwn` branch fires and Reflect returns
+        // undefined for both. The branch executes regardless of the result.
+        expect(Object.getOwnPropertyDescriptor(b, 'value')).toBeUndefined();
+        expect(Object.getOwnPropertyDescriptor(b, 'set')).toBeUndefined();
+
+        // Inner key surfaces as a configurable data descriptor.
+        const dA = Object.getOwnPropertyDescriptor(b, 'a');
+        expect(dA?.value).toBe(1);
+        expect(dA?.configurable).toBe(true);
+    });
+
+    it('Object.defineProperty on a Box-owned key writes through to the instance', () => {
+        const b = box({ a: 1 });
+
+        // Override the inherited `snapshot` helper with an own data property.
+        // Routes through the defineProperty trap's `isOwn` branch.
+        Object.defineProperty(b, 'snapshot', {
+            value: () => 'overridden',
+            writable: true,
+            enumerable: false,
+            configurable: true
+        });
+
+        expect((b as unknown as { snapshot: () => string }).snapshot()).toBe('overridden');
+    });
+
+    it('construct trap throws TypeError when the inner value is not a function', () => {
+        const b = box(42);
+        const Ctor = b as unknown as new () => unknown;
+        expect(() => new Ctor()).toThrow(TypeError);
+    });
+
+    it('isOwn cache resolves prototype keys added after construction', () => {
+        // Seeded ownCache covers everything on the prototype chain at
+        // construction. A key added to the prototype afterwards misses the
+        // seed and exercises the walk-then-cache branch of `isOwn`.
+        const inst = new LateProtoBox(0);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (LateProtoBox.prototype as any).lateMethod = function () {
+            return 'late';
+        };
+
+        expect((inst as unknown as { lateMethod: () => string }).lateMethod()).toBe('late');
     });
 });
 
