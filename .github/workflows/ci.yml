@@ -120,7 +120,7 @@ jobs:
       - run: bun run test
 
       # Coverage runs on Linux only; macOS and Windows duplicate the signal
-      # and double the runner minutes. Thresholds live in vite.config.ts
+      # and double the runner minutes. Thresholds live in vitest.config.ts
       # (90% lines/statements/functions, 80% branches) and gate this step.
       - name: Coverage (Linux only)
         if: runner.os == 'Linux'

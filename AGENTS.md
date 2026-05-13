@@ -132,7 +132,7 @@ cleanup();
 
 `@vitest/browser-playwright` runs this in a real browser so the Svelte runtime is intact. There is no Node-environment test project for the library code.
 
-Benchmarks live under [benchmarking/](benchmarking/), split the same way as tests: [box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) for Box and FastBox, [collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts) and [collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts) for the collection factories. All bench files run in the same browser project. The vite config's `benchmark.include` is recursive (`benchmarking/**/*.svelte.bench.{js,ts}`). Setup is at `describe` scope so allocation costs are not part of bench iterations. Always compare Box against the realistic alternatives developers reach for: raw `$state`, a class with a `$state` field, a class with a private cell behind a get/set accessor pair, and a `$state({ value })` wrapper. The cross-boundary describe block measures these together so the gap stays legible.
+Benchmarks live under [benchmarking/](benchmarking/), split the same way as tests: [box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) for Box and FastBox, [collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts) and [collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts) for the collection factories. All bench files run in the same browser project. The vitest config's `benchmark.include` is recursive (`benchmarking/**/*.svelte.bench.{js,ts}`). Setup is at `describe` scope so allocation costs are not part of bench iterations. Always compare Box against the realistic alternatives developers reach for: raw `$state`, a class with a `$state` field, a class with a private cell behind a get/set accessor pair, and a `$state({ value })` wrapper. The cross-boundary describe block measures these together so the gap stays legible.
 
 ### Build pipeline
 
@@ -153,7 +153,7 @@ The workflow uses `id-token: write` (for OIDC) and `contents: write` (for the SB
 
 ## Testing rules
 
-- Tests live in `tests/`. Discovery glob in `vite.config.ts` is `tests/**/*.svelte.{test,spec}.{js,ts}`, so the suffix is what matters; the directory layout under `tests/` mirrors the lib (`tests/box.svelte.test.ts`, `tests/fastbox.svelte.test.ts`, `tests/collections/{map,set}.svelte.test.ts`).
+- Tests live in `tests/`. Discovery glob in `vitest.config.ts` is `tests/**/*.svelte.{test,spec}.{js,ts}`, so the suffix is what matters; the directory layout under `tests/` mirrors the lib (`tests/box.svelte.test.ts`, `tests/fastbox.svelte.test.ts`, `tests/collections/{map,set}.svelte.test.ts`).
 - All tests run in headless Chromium through `@vitest/browser-playwright`. There is no Node-environment test project; everything that touches `$state` needs the real Svelte runtime, which only behaves correctly in a browser.
 - Shared helpers go in [tests/\_helpers.svelte.ts](tests/_helpers.svelte.ts). The leading underscore is the convention for non-test test utilities; the file is not picked up as a test because its name does not match the discovery suffix. The `.svelte.ts` extension is still required because the body uses runes.
 - Reactivity tests wrap setup in `$effect.root` via the `withRoot` helper, then call `flushSync()` between mutations and assertions. The pattern is shown in the Architecture section under "Test infrastructure".
@@ -174,6 +174,6 @@ Six files form the documentation surface. Four are consumer-facing; two govern t
 
 Keep all six consistent. When adding a public export, update the README API reference, the JSDoc on the new symbol, this file's Architecture/source-layout list, and an entry under the next version's section in `CHANGELOG.md` in the same change. When changing the publish flow, security posture, or contribution policy, update `SECURITY.md` or `CONTRIBUTING.md` alongside the workflow file.
 
-`bun run test:coverage` runs as a blocking step on the Linux leg of CI. Thresholds live in `vite.config.ts` (90% lines/statements/functions, 80% branches); the report is uploaded as a CI artifact.
+`bun run test:coverage` runs as a blocking step on the Linux leg of CI. Thresholds live in `vitest.config.ts` (90% lines/statements/functions, 80% branches); the report is uploaded as a CI artifact. The test config uses `@sveltejs/vite-plugin-svelte` directly instead of the SvelteKit plugin so chokidar watchers do not outlive `vitest --run`.
 
 When a change affects the public surface (anything exported from `@coroama/svelte-box`, the runtime behavior of those exports, or the types of those exports), add a `CHANGELOG.md` entry under `## [Unreleased]`. The format follows [Keep a Changelog](https://keepachangelog.com): `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, in that order, with version-comparison links updated at the bottom of the file. Documentation-only changes do not require a CHANGELOG entry unless the doc fix is significant enough that you want it to show up on the npm package page after the next patch release.
