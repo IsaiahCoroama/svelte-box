@@ -6,30 +6,42 @@ Instructions for AI coding agents working in this repository. Read this before m
 
 `svelte-box` is a tiny reactive container library for Svelte 5. It wraps `$state` so a value can be passed across function, class, and component boundaries without losing reactivity. Published to npm as `@coroama/svelte-box`, built via the SvelteKit packager. The repo and project keep the name `svelte-box`; only the npm import path is scoped.
 
-## Commands
+## Conventions
 
-The project uses **bun** as its package manager (`bun.lock`, no `package-lock.json`). Scripts still use `npm run` style names because they run via the standard package.json scripts, but install with bun:
+- **Svelte 5 runes everywhere**. No legacy stores, no `export let`, no slot syntax. `$state`, `$derived`, `$effect`, `$props` only.
+- **JSDoc on the `.js` side, full TypeScript on the `.d.ts` side**. The two must agree. The build favors the `.d.ts` siblings; the JS-side JSDoc is for IDE hover and stays terse.
+- **Documentation voice**: plain, declarative, programmer-direct. Prioritize simplicity without sacrificing completeness or accuracy. Filler words only when removing them would damage clarity. Cut restatement, framing, hedging, moralizing. Keep the _why_ on non-obvious decisions. No marketing language, em dashes, stacked semicolons, or emojis in any doc, comment, commit message, or PR body.
+- **Commit messages**: [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format. Types in use: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `security`, `revert`. Append `!` for breaking changes and include a `BREAKING CHANGE:` footer. Full rules and examples live in [CONTRIBUTING.md](CONTRIBUTING.md#commit-messages).
+- **Comments only when the why is non-obvious**. A comment that just restates the code is noise. The README and tests carry the explanatory weight.
+- **Strict TypeScript** is the floor. Library code, tests, benches, and the SvelteKit playground all run under `strict: true`.
 
-- `bun install` (or `bun install --frozen-lockfile` in CI)
-- `npm run dev` : start the SvelteKit playground at [src/routes/+page.svelte](src/routes/+page.svelte)
-- `npm run check` : `svelte-kit sync && svelte-check`. Use this to verify types before claiming success.
-- `npm run lint` : prettier check + eslint
-- `npm run format` : prettier write
-- `npm test` : run the full vitest suite once (browser mode, headless chromium)
-- `npm run test:unit` : vitest in watch mode
-- `npm run prepack` : build and validate: `svelte-kit sync && svelte-package && publint`. The `publint` step validates the built output, it does not build anything itself.
-- `npm run bench` : run the benchmark suite at [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) once. Browser mode, takes about a minute.
-- `npm run bench:json` : same, but write JSON output to `bench-results.json` for diffing or storage.
+## Build and check
+
+Local and CI both use bun. The committed lockfile is `bun.lock`. Scripts are runner-agnostic; `npm run …` works in a pinch.
+
+```
+bun run check       # svelte-kit sync + svelte-check, must be 0 errors and 0 warnings
+bun run build       # production build + svelte-package + publint (also aliased as prepack)
+bun run build:app   # vite build only, no svelte-package step (used by the Pages workflow)
+bun run test        # vitest browser tests, requires Node 20.6+ and Chromium
+bun run bench       # vitest bench, browser-based, takes about a minute
+bun run bench:json  # same as bench, but writes bench-results.json for diffing or storage
+bun run format      # prettier
+bun run lint        # prettier check + eslint (also runs `bun audit --audit-level=low` in CI)
+bun run dev         # SvelteKit playground at src/routes/, for manual exploration
+```
 
 **Run a single test:**
 
 ```sh
-npx vitest --run tests/box.svelte.test.ts -t "test name pattern"
+bunx vitest --run tests/box.svelte.test.ts -t "test name pattern"
 ```
 
-**Node version**: SvelteKit 2.57+ needs Node 20.6+ (uses `node:util.styleText`). If `npm run` fails with `SyntaxError: ... 'styleText'`, the active node binary is too old. Use `nvm use 20` (or newer), or prepend a Node 20.6+ install to `PATH` for the session.
+**Node version.** SvelteKit 2.57+ needs Node 20.6 or newer (uses `node:util.styleText`). If `bun run check` or `bun run test` fails with `SyntaxError: ... 'styleText'`, the active Node binary is too old. Use `nvm use 24` (matches the publish workflow), or prepend a Node 20.6+ install to `PATH` for the session.
 
-**Playwright**: tests use `@vitest/browser-playwright` with chromium. If chromium is missing, run `npx playwright install chromium`.
+**Playwright.** Tests use `@vitest/browser-playwright` with Chromium. If Chromium is missing, run `bunx playwright install chromium`. The cache lives under `~/.cache/ms-playwright` on Linux, `~/Library/Caches/ms-playwright` on macOS, `%LOCALAPPDATA%\ms-playwright` on Windows.
+
+`bun run bench` launches headless Chromium. Skip it when you do not need numbers. Benches drift between machines; a single local run is informative.
 
 ## Architecture
 
@@ -86,7 +98,7 @@ The `Box` constructor returns a `new Proxy(...)` so `new Box(x)` gives the user 
 
 4. **`bindForwarded` caches bound methods.** `box.someMethod === box.someMethod` must be true, otherwise Svelte's `{#each}` keying and consumer memoization break. The cache is a `WeakMap<inner, Map<prop, { source, bound }>>` at module scope. The `source` field detects when an inner method is reassigned so we rebind. WeakMap drops entries when inner is GC'd. Per-inner Map keys persist for the inner's lifetime.
 
-5. **`FORWARD_FIRST` is a Set of names that prefer the inner method.** Currently `'get'`, `'set'`, `'del'`. This makes `boxedMap.set(k, v)` invoke `SvelteMap.set` instead of Box's helper. If you rename a Box helper that collides with a common collection method, add it to this set.
+5. **`FORWARD_FIRST` is a Set of names that prefer the inner method.** Currently `'get'`, `'set'`. This makes `boxedMap.set(k, v)` invoke `SvelteMap.set` instead of Box's helper. `del` was previously in this set but removed in v0.2.0 because no common collection exposes `.del`. If you rename a Box helper that collides with a common collection method, add it to this set.
 
 6. **`toJSON` exists on Box** because `JSON.stringify` of a function-typed value returns `undefined`. Without `toJSON`, every `JSON.stringify(box)` would produce `undefined`. The trap returns `this.value` so serialization sees the inner.
 
@@ -126,11 +138,42 @@ Benchmarks live under [benchmarking/](benchmarking/), split the same way as test
 
 `svelte-package` reads from `src/lib`, writes to `dist/`. The `package.json` `exports` field points consumers at `dist/index.js` and `dist/index.d.ts`. The package only ships `dist/`. The SvelteKit playground in `src/routes/` is for local development and is not part of the published surface.
 
-Publish flow: GitHub release triggers `.github/workflows/publish.yml`, which re-runs lint/check/tests, verifies the release tag matches `package.json` version (with optional `v` prefix stripped), runs prepack, then `npm publish --provenance --access public`. Provenance requires `id-token: write` in the workflow permissions.
+Publish flow: a GitHub Release event triggers `.github/workflows/publish.yml`. The job is gated behind the `npm-publish` environment, which requires manual reviewer approval. In order, the workflow:
 
-## Style preferences
+1. Checks out at `fetch-depth: 0` and verifies the release commit is an ancestor of `origin/master` (defense in depth alongside the `v*` tag-protection ruleset).
+2. Re-runs lint, type-check, and the full test suite.
+3. Runs `npm audit signatures` to verify every tarball in the resolved dependency graph carries a valid Sigstore signature from npm.
+4. Verifies the release tag matches `package.json` version (`v` prefix stripped).
+5. Runs `prepack` (`svelte-package + publint`).
+6. Generates a CycloneDX SBOM (`sbom.cdx.json`) via `@cyclonedx/cyclonedx-npm`, with `continue-on-error: true` so a generator failure cannot break publish.
+7. Publishes to npm via Trusted Publisher OIDC with provenance attestations. SemVer pre-releases (any version with a hyphen, e.g. `0.2.0-rc.0`) ship under the `next` dist-tag; final releases ship under `latest`.
+8. Attaches the SBOM to the GitHub Release as a downloadable asset, only if step 6 produced a file.
 
-- No em dashes (—). Use periods or commas instead.
-- Avoid heavy semicolon use in prose.
-- Documentation should read like a human wrote it, not like LLM output.
-- These apply to README, JSDoc, comments, and any prose. Code is not affected.
+The workflow uses `id-token: write` (for OIDC) and `contents: write` (for the SBOM upload). No long-lived `NPM_TOKEN` is stored; the npm registry exchanges the GitHub OIDC token for a short-lived publish credential at run time.
+
+## Testing rules
+
+- Tests live in `tests/`. Discovery glob in `vite.config.ts` is `tests/**/*.svelte.{test,spec}.{js,ts}`, so the suffix is what matters; the directory layout under `tests/` mirrors the lib (`tests/box.svelte.test.ts`, `tests/fastbox.svelte.test.ts`, `tests/collections/{map,set}.svelte.test.ts`).
+- All tests run in headless Chromium through `@vitest/browser-playwright`. There is no Node-environment test project; everything that touches `$state` needs the real Svelte runtime, which only behaves correctly in a browser.
+- Shared helpers go in [tests/\_helpers.svelte.ts](tests/_helpers.svelte.ts). The leading underscore is the convention for non-test test utilities; the file is not picked up as a test because its name does not match the discovery suffix. The `.svelte.ts` extension is still required because the body uses runes.
+- Reactivity tests wrap setup in `$effect.root` via the `withRoot` helper, then call `flushSync()` between mutations and assertions. The pattern is shown in the Architecture section under "Test infrastructure".
+- When mutating reactive state across `flushSync()`, mutate first, then flush, then assert. Out-of-order calls hide bugs.
+- Fixtures (small classes or values used as test inputs) go inline in the test file when they are short. Reactive classes that hold `$state` fields should be declared at module scope, not inside `it()` callbacks: nested declarations trip Svelte's `perf_avoid_nested_class` warning.
+- The current suite is 85 tests across four files. Adding a test should not push that past ~3 seconds locally on Chromium; if it does, ask whether the test is exercising the lib or the framework.
+
+## Documentation rules
+
+Six files form the documentation surface. Four are consumer-facing; two govern the contributor and security workflow:
+
+1. `README.md` for end users on npm and GitHub.
+2. `AGENTS.md` (this file) for contributors and agents.
+3. JSDoc in `src/lib/**/*.d.ts` for IDE hover. The `.d.ts` siblings are the source of truth; `.js`-side JSDoc stays minimal.
+4. `CHANGELOG.md` for the per-version history.
+5. `CONTRIBUTING.md` for the human contribution workflow (PR flow, commit-message format, release process).
+6. `SECURITY.md` for the published threat model, vulnerability-reporting channel, and repository-hardening inventory.
+
+Keep all six consistent. When adding a public export, update the README API reference, the JSDoc on the new symbol, this file's Architecture/source-layout list, and an entry under the next version's section in `CHANGELOG.md` in the same change. When changing the publish flow, security posture, or contribution policy, update `SECURITY.md` or `CONTRIBUTING.md` alongside the workflow file.
+
+`bun run test:coverage` runs as a blocking step on the Linux leg of CI. Thresholds live in `vite.config.ts` (90% lines/statements/functions, 80% branches); the report is uploaded as a CI artifact.
+
+When a change affects the public surface (anything exported from `@coroama/svelte-box`, the runtime behavior of those exports, or the types of those exports), add a `CHANGELOG.md` entry under `## [Unreleased]`. The format follows [Keep a Changelog](https://keepachangelog.com): `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, in that order, with version-comparison links updated at the bottom of the file. Documentation-only changes do not require a CHANGELOG entry unless the doc fix is significant enough that you want it to show up on the npm package page after the next patch release.
