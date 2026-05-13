@@ -1,0 +1,58 @@
+name: CodeQL
+
+# Static analysis on PRs and pushes that touch code, plus a weekly scan on
+# master regardless of paths. The cron is the safety net for advisories
+# disclosed after the last code-touching merge. Allow-list keeps docs-only
+# PRs from burning runner minutes on a no-op scan.
+on:
+  push:
+    branches: [master]
+    paths: &codeql-paths
+      - 'src/**'
+      - 'tests/**'
+      - 'benchmarking/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'vite.config.ts'
+      - 'svelte.config.js'
+      - 'tsconfig.json'
+      - 'eslint.config.js'
+      - '.github/workflows/codeql.yml'
+  pull_request:
+    branches: [master]
+    paths: *codeql-paths
+  schedule:
+    - cron: '00 20 * * 1'
+
+# One CodeQL run per branch at a time. Newer pushes preempt older ones.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@52485aec7be33610227643b0fe83936b8b5f061a # v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@52485aec7be33610227643b0fe83936b8b5f061a # v3
+        with:
+          category: '/language:${{ matrix.language }}'
