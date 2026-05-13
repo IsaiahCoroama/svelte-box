@@ -27,20 +27,11 @@ internal:
           - '!tests/**'
           - '!benchmarking/**'
 
-feature:
-  - changed-files:
-      - any-glob-to-any-file:
-          - src/lib/**
-
-bug:
-  - changed-files:
-      - any-glob-to-any-file:
-          - src/lib/**
-
-refactor:
-  - changed-files:
-      - any-glob-to-any-file:
-          - src/lib/**
+# `feature`, `bug`, `refactor`, `breaking`, and `security` are intent /
+# judgment labels that file paths cannot tell apart. A change touching
+# `src/lib/**` could be any of the first three. These are applied by
+# the author or a maintainer on the PR; the label-checker workflow only
+# requires that at least one classification label is present.
 
 upgrade:
   - changed-files:
