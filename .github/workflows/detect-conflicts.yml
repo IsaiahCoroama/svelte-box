@@ -30,7 +30,7 @@ jobs:
       - name: Check if PRs have merge conflicts
         # SECURITY: pin to a full commit SHA — this action runs in pull_request_target context
         # (write permissions, base-branch token) so a floating tag is a supply-chain risk.
-        uses: eps1lon/actions-label-merge-conflict@636b369ea34ff799b8db5182df6f19e39b2d4adb # v3.0.3
+        uses: eps1lon/actions-label-merge-conflict@1df065ebe6e3310545d4f4c4e862e43bdca146f0 # v3.0.3
         with:
           dirtyLabel: 'conflicts'
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
