@@ -1,0 +1,44 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    target-branch: 'develop'
+    open-pull-requests-limit: 5
+    labels:
+      - deps
+    groups:
+      svelte:
+        patterns:
+          - 'svelte*'
+          - '@sveltejs/*'
+          - 'vite*'
+          - 'vitest*'
+          - '@vitest/*'
+          - 'vitest-browser-svelte'
+      lint:
+        patterns:
+          - 'eslint*'
+          - '@eslint/*'
+          - 'typescript-eslint'
+          - 'prettier*'
+          - 'globals'
+      types:
+        patterns:
+          - '@types/*'
+          - 'typescript'
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: UTC
+    labels:
+      - deps
+      - github_actions

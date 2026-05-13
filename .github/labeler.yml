@@ -1,0 +1,49 @@
+docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+    - all-globs-to-all-files:
+      - '!src/**'
+      - '!tests/**'
+      - '!benchmarking/**'
+      - '!.github/**'
+      - '!.gitignore'
+      - '!package.json'
+      - '!bun.lock'
+      - '!*.config.{js,ts}'
+      - '!*.json'
+
+internal:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/**
+      - .gitignore
+      - .prettierignore
+      - .prettierrc
+      - .npmrc
+    - all-globs-to-all-files:
+      - '!**/*.md'
+      - '!src/**'
+      - '!tests/**'
+      - '!benchmarking/**'
+
+feature:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/lib/**
+
+bug:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/lib/**
+
+refactor:
+  - changed-files:
+    - any-glob-to-any-file:
+      - src/lib/**
+
+upgrade:
+  - changed-files:
+    - any-glob-to-any-file:
+      - package.json
+      - bun.lock
