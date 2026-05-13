@@ -7,6 +7,18 @@ name: OpenSSF Scorecard
 on:
   push:
     branches: [master]
+    # Score depends on workflow YAML, branch-protection metadata, deps,
+    # SECURITY.md, LICENSE, and packaging policy. Prose-only edits to
+    # README/CHANGELOG/AGENTS cannot change the result. The weekly cron
+    # and manual dispatch below are the safety net if a score-affecting
+    # path is added that this list misses.
+    paths:
+      - '.github/**'
+      - 'SECURITY.md'
+      - 'LICENSE'
+      - 'package.json'
+      - 'bun.lock'
+      - 'CONTRIBUTING.md'
   schedule:
     - cron: '00 00 * * 1' # Monday 00:00 UTC
   workflow_dispatch:
