@@ -41,7 +41,22 @@ export default defineConfig(
         files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
         languageOptions: {
             parserOptions: {
-                projectService: true,
+                // `projectService: true` defaults to strict mode, which
+                // rejects files not enumerated in a tsconfig. `.svelte.js`
+                // and `.svelte.ts` files match `src/**/*.{js,ts}` in
+                // tsconfig include, but the project service does not pick
+                // them up automatically because the svelte parser owns
+                // the file extension. `allowDefaultProject` opts them
+                // into the shared default project. `**` is disallowed in
+                // these globs, so paths are enumerated explicitly. Add
+                // any new `.svelte.{js,ts}` file's path here.
+                projectService: {
+                    allowDefaultProject: [
+                        'src/lib/core/base.svelte.js',
+                        'src/lib/core/fast.svelte.js',
+                        'src/lib/core/proxy.svelte.js'
+                    ]
+                },
                 extraFileExtensions: ['.svelte'],
                 parser: ts.parser,
                 svelteConfig
