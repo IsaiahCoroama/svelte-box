@@ -5,5 +5,6 @@ yarn.lock
 bun.lock
 bun.lockb
 
-# Miscellaneous
+# Static assets are managed verbatim and do not benefit from prettier
+# touching them.
 /static/
