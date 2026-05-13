@@ -44,5 +44,12 @@ jobs:
     steps:
       - uses: docker://agilepathway/pull-request-label-checker@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61 # v1.6.65
         with:
-          one_of: breaking,security,feature,bug,refactor,upgrade,docs,internal
+          # `any_of` requires at least one of the listed labels. We use this
+          # instead of `one_of` (exactly one) because most PRs are multi-
+          # aspect — e.g. a security fix that also bumps a dep is both
+          # `security` and `upgrade`. Intent labels (`feature`, `bug`,
+          # `refactor`) and judgment labels (`security`, `breaking`) are
+          # author/maintainer-applied; `docs`, `internal`, and `upgrade` are
+          # auto-applied by the labeler step above based on file paths.
+          any_of: breaking,security,feature,bug,refactor,upgrade,docs,internal
           repo_token: ${{ secrets.GITHUB_TOKEN }}
