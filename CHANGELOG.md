@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Tooling and infrastructure
+
+- **Coverage promoted to a blocking CI step** on the Linux leg of `ci.yml`. Removed `continue-on-error: true`; the V8 thresholds in `vite.config.ts` (90% lines/statements/functions, 80% branches) now gate merges. Coverage HTML is uploaded as a 30-day artifact via `actions/upload-artifact`.
+- **Added `concurrency:` groups** to `publish.yml` (singleton `npm-publish`, `cancel-in-progress: false` so an in-flight publish completes before the next starts), `codeql.yml`, `bench.yml`, `scorecard.yml`, and `issue-manager.yml`. Two simultaneous releases or rapid PR/issue events no longer race.
+- **ESLint config aligned** with the sibling `svelte-lazy` repo: added an `@typescript-eslint/no-unused-vars` override that ignores underscore-prefixed names (argument, variable, caught-error, destructured-array patterns), and `projectService: true` on the Svelte parser block.
+- **Vitest coverage `html` reporter added** alongside `text`, `lcov`, `json-summary` so the uploaded artifact opens as a navigable site.
+- **`.gitignore` extended** with `/coverage` and the Playwright `test-results` directory so they do not get accidentally tracked.
+
+### Security
+
+- **Rewrote `SECURITY.md`** from scratch against the actual library surface. The previous file was forked from a sibling project (`svelte-lazy`) and described a dynamic-import loader threat model that does not apply here. The corrected file documents the real surface (no network, no I/O, no crypto, single peer dep, single-maintainer publish chain), the proxy-trap correctness contract, and the current repository hardening (Trusted Publisher OIDC, environment approval gate, CodeQL, OpenSSF Scorecard, tag protection).
+- **SHA-pinned every third-party GitHub Action** across `ci.yml`, `bench.yml`, `pages.yml`, `publish.yml`, `codeql.yml`, and the new `scorecard.yml`. Mutable-tag references replaced with `@<sha> # <tag>` form. Dependabot's `github-actions` ecosystem updates SHAs on its weekly schedule.
+- **Added `OpenSSF Scorecard` workflow** (`.github/workflows/scorecard.yml`) that runs weekly and on every push to `master`, uploads SARIF to GitHub Security, and publishes results to the public Scorecard dashboard. README now carries the Scorecard badge.
+- **Configured tag-protection ruleset for `refs/tags/v*`** via the repository rulesets API. Blocks tag creation, deletion, and non-fast-forward push for non-admins. Verified with `gh api repos/IsaiahCoroama/svelte-box/rulesets`. Closes the gap between SECURITY.md's stated tag policy and the actual repository configuration.
+- **Publish workflow verifies the release tag is an ancestor of `master`** (`git merge-base --is-ancestor`). Defense in depth alongside the new tag-protection ruleset. The check now runs an explicit `git fetch --depth=1 origin master` first so the ancestry comparison does not depend on `actions/checkout`'s default ref handling under a tag trigger.
+- **Publish workflow generates a CycloneDX SBOM** during build and attaches `sbom.cdx.json` to the GitHub Release. Provenance + SBOM together cover the supply-chain documentation surface that enterprise vendor reviews expect.
+- **Publish workflow runs `npm audit signatures`** before build, verifying every tarball in the resolved dependency graph carries a valid Sigstore signature from the npm registry. Generates a transient `package-lock.json` via `npm install --package-lock-only` first because `bun install` does not emit a npm-format lockfile.
+- **Added `concurrency:` groups and header SECURITY comments** to every `pull_request_target` workflow (`detect-conflicts.yml`, `labeler.yml`, `issue-manager.yml`). The header comments record the safety invariant (no PR-code checkout, no PR-controlled `run:` inputs) so future edits do not silently introduce the standard privilege-escalation pattern.
+
+### Documentation
+
+- **Rewrote `CONTRIBUTING.md`** from scratch against the actual codebase. The previous file was forked from a sibling project and referenced a `lazy()` factory, `LazyProps` type, `react-loadable`, and a loader-closure threat model that none exist here. The corrected file uses real branch-name and commit-message examples taken from this repo's history, lists the actual class hierarchy (`BaseBox`, `Box`, `FastBox`), and reflects the current zero-runtime-dependency policy.
+- **Fixed `.github/ISSUE_TEMPLATE/bug_report.md`** to reference `@coroama/svelte-box` instead of the wrong package name.
+- **Corrected `AGENTS.md` `FORWARD_FIRST` description** to list only `'get'` and `'set'` (the v0.2.0 trim removed `'del'`); rewrote the publish-flow paragraph to describe the actual eight-step pipeline (ancestry check, audit signatures, tag-version match, prepack, SBOM, OIDC publish, SBOM upload); expanded the documentation-surface list from four files to six to include the rewritten `CONTRIBUTING.md` and `SECURITY.md` under the same consistency contract.
+- **Replaced residual `loader closure` phrasing in `SECURITY.md`** with "inner function" — the last remaining svelte-lazy idiom in the security policy.
+- **Added a Scorecard sentence and a Pages-workflow bullet to the README "Status and testing" section**, plus three new-workflow bullets (`detect-conflicts`, `labeler`, `issue-manager`) to `SECURITY.md`'s "Repository Configuration" inventory.
+
+### Tooling and infrastructure
+
+- **Added Vitest coverage configuration** in `vite.config.ts` with V8 provider, `src/lib/**` scope, and thresholds (90% lines/statements/functions, 80% branches). New `test:coverage` script wired into `ci.yml` as a non-blocking informational step on the Linux leg until the first measurement establishes a baseline; the AGENTS.md documentation rules section now carries an explicit TODO to promote the step to blocking once the baseline is stable.
+- **Added `funding` field** to `package.json` pointing at GitHub Sponsors. Cosmetic trust signal for npm consumers.
+- **Added `@vitest/coverage-v8` devDep** (`bun.lock` regenerated in the same commit so `bun install --frozen-lockfile` does not break on the next CI run).
+- **Removed duplicate `--provenance` declaration.** `package.json` no longer carries `publishConfig.provenance`; the publish workflow's explicit `--provenance` flag remains authoritative.
+- **Trimmed `.prettierignore`** of stale `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lockb` entries that referenced lockfiles that have never existed in this repo.
+- **Repaired `.github/labeler.yml` config**: dropped nonexistent `terraform/**`, `scripts/**`, `.pre-commit-config.yaml` path globs inherited from a template fork; restructured to the canonical `actions/labeler@v6` form (single `changed-files` block with `any-glob-to-any-file` + `all-globs-to-all-files`) so the IDE schema validator is satisfied; added `feature`, `bug`, `refactor`, `upgrade` label rules so PRs touching the lib auto-acquire a matching label.
+- **Aligned label-checker required set** in `labeler.yml` workflow with labels that actually exist on the repository: dropped `lang-all` (not applicable to a Svelte utility), kept the remaining eight (`breaking`, `security`, `feature`, `bug`, `refactor`, `upgrade`, `docs`, `internal`). Created the three previously-missing labels (`breaking`, `upgrade`, `internal`) so the required-label gate cannot silently block PRs.
+- **Added bench regression detection** to `bench.yml`. The workflow now downloads the bench output from the previous successful run, parses Vitest's `hz` columns for both runs, and appends a regression table to the PR comment for any benchmark that dropped more than 20%. Informational only; the workflow continues to pass regardless of regressions until the noise floor is understood.
+
 ## [0.2.1] - 2026-05-11
 
 Documentation-only patch release. Refreshes the README on the npm package page to match the as-shipped state of v0.2.0. No runtime, type, or API changes.
