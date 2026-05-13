@@ -4,22 +4,49 @@ on:
   release:
     types: [published]
 
+# Two simultaneous Releases must not race on `npm publish`. `cancel-in-progress`
+# stays false so an in-flight publish completes before the next one starts.
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Build and publish
     runs-on: ubuntu-latest
     environment: npm-publish
     permissions:
-      contents: read
+      contents: write # required to attach SBOM to the GitHub Release
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # Fetch enough history to verify the release tag is an ancestor of
+          # master. fetch-depth: 0 = full history.
+          fetch-depth: 0
 
-      - uses: oven-sh/setup-bun@v2
+      - name: Verify release tag is on master
+        # Tag protection on `v*` already prevents non-admin pushes from
+        # forging a tag, but verify in CI as a defense in depth. Reject any
+        # tag whose commit is not reachable from origin/master.
+        #
+        # The explicit `git fetch` is defensive: actions/checkout at
+        # fetch-depth: 0 against a tag ref usually leaves origin/master
+        # populated, but the exact behavior depends on the trigger ref
+        # initialization. Fetching master here guarantees the ancestry
+        # check has the ref it needs regardless of checkout state.
+        run: |
+          git fetch --no-tags --depth=1 origin master
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/master; then
+            echo "Tag commit ${GITHUB_SHA} is not on master. Refusing to publish."
+            exit 1
+          fi
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.3.x
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -28,7 +55,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -45,6 +72,23 @@ jobs:
       - run: bun run check
       - run: bun run test
 
+      # Verify every tarball in the resolved dependency graph carries a
+      # valid Sigstore signature from the npm registry. Catches tampered
+      # tarballs in the local install graph before the package is built
+      # from them. Requires the npm CLI (already on the runner via
+      # actions/setup-node above).
+      #
+      # `npm audit signatures` reads from a `package-lock.json` (npm
+      # format). Bun does not write `package-lock.json`, so we generate
+      # one transiently from `package.json` first. `--package-lock-only`
+      # skips installing (node_modules already exists from `bun install`
+      # above) and `--no-audit` skips the audit-side-effect pass.
+      - name: Generate transient package-lock.json for signature audit
+        run: npm install --package-lock-only --no-audit --no-fund
+
+      - name: Verify dependency tarball signatures
+        run: npm audit signatures
+
       - name: Verify release tag matches package version
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -55,6 +99,25 @@ jobs:
           fi
 
       - run: bun run prepack
+
+      - name: Generate SBOM (CycloneDX)
+        id: sbom
+        # Run through `npx`, not `bunx`. The CycloneDX tool shells out to
+        # `npm --version` for a >=9 compat check. Under `bunx`, bun's runtime
+        # intercepts and returns its own version (1.3.13), which the tool
+        # rejects. `npx` keeps node's real npm (11.x via setup-node) in scope.
+        #
+        # `--ignore-npm-errors` is required because the install graph was
+        # produced by `bun install`. npm's `npm ls --json` (which CycloneDX
+        # invokes internally) flags bun-resolved peer deps as extraneous or
+        # invalid even when the graph is healthy. The flag lets the SBOM
+        # generation proceed despite those warnings.
+        run: |
+          npx --yes @cyclonedx/cyclonedx-npm \
+            --ignore-npm-errors \
+            --output-file sbom.cdx.json \
+            --output-format JSON
+        continue-on-error: true
 
       - name: Publish to npm
         # SemVer pre-releases (any version containing a hyphen, e.g.
@@ -70,3 +133,12 @@ jobs:
             echo "Final release ($PKG_VERSION) -> publishing under dist-tag 'latest'"
             npm publish --provenance --access public
           fi
+
+      - name: Attach SBOM to the GitHub Release
+        # Only runs if the SBOM step above produced a file. The earlier step
+        # has `continue-on-error: true`, so a missing sbom.cdx.json is not
+        # fatal here either; the publish itself already succeeded.
+        if: hashFiles('sbom.cdx.json') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${GITHUB_REF_NAME}" sbom.cdx.json --clobber
