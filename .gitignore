@@ -7,11 +7,15 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+/coverage
 /dist
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright
+test-results
 
 # Env
 .env
