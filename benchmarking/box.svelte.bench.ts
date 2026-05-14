@@ -19,7 +19,7 @@
  */
 
 import { describe, bench } from 'vitest';
-import { Box, FastBox, box } from '../src/lib/index.js';
+import { Box, FastBox, box, isBox } from '../src/lib/index.js';
 
 // $state can only appear as a variable initializer or class field, never as
 // a free expression. The wrapper classes below let us compare per-instance
@@ -425,6 +425,181 @@ describe('cross-boundary read from class instance', () => {
 
     bench('FastBox: store.count.value', () => {
         sfb.count.value;
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Realistic patterns: what a real app actually does between renders.
+// These are the most useful numbers if you are deciding whether the
+// Box overhead is acceptable for your use case.
+// ---------------------------------------------------------------------------
+
+describe('realistic: form-input echo (read-transform-write per keystroke)', () => {
+    // Models `bind:value` on a text field: each keystroke reads the
+    // current value, runs a tiny transform, and writes back. One
+    // iteration ~= one keystroke.
+    const fb = new FastBox('hello');
+    const bx = new Box('hello');
+    const accessor = new (class {
+        #v = $state('hello');
+        get v() {
+            return this.#v;
+        }
+        set v(next: string) {
+            this.#v = next;
+        }
+    })();
+
+    bench('Baseline: accessor.v = accessor.v.slice(-32) + "x"', () => {
+        accessor.v = accessor.v.slice(-32) + 'x';
+    });
+
+    bench('Box: bx.value = bx.value.slice(-32) + "x"', () => {
+        bx.value = bx.value.slice(-32) + 'x';
+    });
+
+    bench('FastBox: fb.value = fb.value.slice(-32) + "x"', () => {
+        fb.value = fb.value.slice(-32) + 'x';
+    });
+});
+
+describe('realistic: counter loop (1000 increments through a function)', () => {
+    // Models a tight interaction loop or a chunked computation that
+    // mutates a single piece of reactive state from another module.
+    function bumpBox(b: Box<number>) {
+        b.value += 1;
+    }
+    function bumpFast(b: FastBox<number>) {
+        b.value += 1;
+    }
+    function bumpAccessor(a: { v: number }) {
+        a.v += 1;
+    }
+
+    const accessor = new (class {
+        #v = $state(0);
+        get v() {
+            return this.#v;
+        }
+        set v(next: number) {
+            this.#v = next;
+        }
+    })();
+    const bx = new Box(0);
+    const fb = new FastBox(0);
+
+    bench('Baseline: 1000 accessor increments', () => {
+        for (let i = 0; i < 1000; i++) bumpAccessor(accessor);
+    });
+
+    bench('Box: 1000 increments', () => {
+        for (let i = 0; i < 1000; i++) bumpBox(bx);
+    });
+
+    bench('FastBox: 1000 increments', () => {
+        for (let i = 0; i < 1000; i++) bumpFast(fb);
+    });
+});
+
+describe('realistic: render fan-out (50 reads + 1 write per frame)', () => {
+    // Models one component render that reads many fields off a shared
+    // object box and then commits one mutation. The Box "transparent
+    // forward" row shows what consumers pay when they treat the box
+    // like a plain object.
+    type View = {
+        title: string;
+        count: number;
+        active: boolean;
+        a: number;
+        b: number;
+        c: number;
+        d: number;
+        e: number;
+    };
+    const seed: View = {
+        title: 't',
+        count: 0,
+        active: true,
+        a: 1,
+        b: 2,
+        c: 3,
+        d: 4,
+        e: 5
+    };
+    const holder = new (class {
+        v = $state({ ...seed });
+    })();
+    const bx = box({ ...seed });
+    const fb = new FastBox({ ...seed });
+    let sink: unknown;
+
+    const FIELDS = ['title', 'count', 'active', 'a', 'b', 'c', 'd', 'e'] as const;
+
+    bench('Baseline: $state object, 50 reads + 1 write', () => {
+        for (let i = 0; i < 50; i++) sink = holder.v[FIELDS[i & 7]];
+        holder.v.count += 1;
+    });
+
+    bench('Box: bx.<field> forward, 50 reads + 1 write', () => {
+        const v = bx as unknown as View;
+        for (let i = 0; i < 50; i++) sink = v[FIELDS[i & 7]];
+        v.count += 1;
+    });
+
+    bench('FastBox: fb.value.<field>, 50 reads + 1 write', () => {
+        for (let i = 0; i < 50; i++) sink = fb.value[FIELDS[i & 7]];
+        fb.value.count += 1;
+    });
+
+    // Reference `sink` so the optimizer cannot dead-code the reads.
+    if (sink === Symbol.for('never')) console.log(sink);
+});
+
+describe('realistic: isBox API-boundary check', () => {
+    // Models a library helper that accepts "value or box" and uses
+    // `isBox` to decide which path to take. Two hits and two misses
+    // per iteration so the bench reflects realistic mixed input.
+    const bx = new Box(0);
+    const fb = new FastBox(0);
+    const obj = { value: 0 };
+    const num = 0;
+
+    bench('isBox: 4 calls (2 hits, 2 misses)', () => {
+        isBox(bx);
+        isBox(fb);
+        isBox(obj);
+        isBox(num);
+    });
+});
+
+describe('realistic: list of N reactive items', () => {
+    // Models the "list of rows, each with its own reactive cell"
+    // pattern: construct N items, then read every cell once. This is
+    // what a virtualized table or a chat-message list does at mount.
+    const N = 100;
+
+    bench('Baseline: 100 ManualPrimitive instances, read each', () => {
+        const list: ManualPrimitive[] = new Array(N);
+        for (let i = 0; i < N; i++) list[i] = new ManualPrimitive();
+        let s = 0;
+        for (let i = 0; i < N; i++) s += list[i].value;
+        if (s === -1) console.log(s);
+    });
+
+    bench('Box: 100 Box(i) instances, read each .value', () => {
+        const list: Box<number>[] = new Array(N);
+        for (let i = 0; i < N; i++) list[i] = new Box(i);
+        let s = 0;
+        for (let i = 0; i < N; i++) s += list[i].value;
+        if (s === -1) console.log(s);
+    });
+
+    bench('FastBox: 100 FastBox(i) instances, read each .value', () => {
+        const list: FastBox<number>[] = new Array(N);
+        for (let i = 0; i < N; i++) list[i] = new FastBox(i);
+        let s = 0;
+        for (let i = 0; i < N; i++) s += list[i].value;
+        if (s === -1) console.log(s);
     });
 });
 
