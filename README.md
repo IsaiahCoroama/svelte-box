@@ -17,7 +17,7 @@ bun add @coroama/svelte-box
 
 Peer dependency: `svelte ^5.0.0`. The compiled package runs anywhere a modern JS runtime does. Node 20.6 or newer is only needed if you are building from source.
 
-**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The same SvelteKit playground that lives under `src/routes/`, redeployed by GitHub Pages after a green CI run on `master` whose merge touched `src/`, `static/`, or one of the build config files. Docs-only merges keep CI happy but skip the redeploy. Try `Box` and `FastBox` side-by-side without cloning the repo.
+**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The SvelteKit playground under `src/routes/`, redeployed by GitHub Pages after a green CI run on `master` whose merge touched `src/`, `static/`, or a build config file. Docs-only merges skip the redeploy. Try `Box` and `FastBox` side-by-side without cloning the repo.
 
 ## Contents
 
@@ -482,7 +482,7 @@ scores.value = new SvelteMap([['ada', 100]]);
 
 ## Classes that own state
 
-This is the use case Box was built for. You can put reactive state inside a class, hand the class around, and pass individual pieces of state into components without losing reactivity anywhere along the way.
+Put reactive state inside a class, hand the class around, and pass individual pieces of state into components without losing reactivity anywhere along the way.
 
 ### Why a class plus Box
 
@@ -589,15 +589,15 @@ Caveat: do not declare a `value =` field on the subclass. `BaseBox` already decl
 
 ### Box inside `$state`, `$state` inside Box
 
-Both directions work and are sometimes useful. `$state` is only available in `.svelte`, `.svelte.js`, or `.svelte.ts` files (or inside a component `<script>`), so the snippet below assumes one of those.
+Both directions work. `$state` is only available in `.svelte`, `.svelte.js`, or `.svelte.ts` files (or inside a component `<script>`), so the snippet below assumes one of those.
 
 ```ts
-// Box inside $state: a re-assignable handle inside a reactive object
+// Box inside $state: re-assignable handle inside a reactive object
 const view = $state({
     selected: box<string | undefined>(undefined)
 });
 
-// $state inside Box: wrap a pre-existing reactive object so it can be passed by reference
+// $state inside Box: wrap a reactive object so it can be passed by reference
 const cart = $state({ items: [], total: 0 });
 const wrapped = box(cart);
 ```
@@ -698,7 +698,7 @@ For everything except tight loops over thousands of forwarded reads per frame, t
 
 The bench suite (`npm run bench`) is a three-way comparison: **Baseline** (the fastest alternative a developer would otherwise reach for, usually a class with a `$state` field, raw `$state`, or a direct `SvelteMap`/`SvelteSet`), **Box** (Proxy variant), and **FastBox** (no Proxy). Numbers below are throughput in operations per second. Higher is better.
 
-**Capture context.** The numbers in the tables below come from a single Chromium run via `@vitest/browser-playwright` on Linux x86_64 with the Chromium build that ships with `playwright` 1.59+. They will drift between machines, browsers, and Svelte versions. Treat them as ballpark figures. To verify on your own hardware, clone the repo and run `npm run bench` (or `npm run bench:json` for a machine-readable dump). The repo also has a post-merge bench workflow (`.github/workflows/bench.yml`) that runs after every pull request that touches `src/lib`, `benchmarking/`, or the workflow itself merges into `master`. It uploads the bench output as a CI artifact and posts a summary comment on the merged PR, so the latest run on a known environment is always one click away from the Actions tab.
+**Capture context.** Numbers below come from a single Chromium run via `@vitest/browser-playwright` on Linux x86_64 (`playwright` 1.59+). Treat as ballpark; they drift between machines, browsers, and Svelte versions. Reproduce with `npm run bench` (or `npm run bench:json`). A post-merge workflow (`.github/workflows/bench.yml`) reruns the suite after every PR touching `src/lib`, `benchmarking/`, or the workflow itself, uploads results as an artifact, and posts a summary comment on the merged PR.
 
 **Reading the tables.** Every cell labels its direction explicitly:
 
@@ -857,11 +857,11 @@ For reference, the Box proxy implements: `apply`, `construct`, `get`, `set`, `ha
 
 ## Status and testing
 
-This is a solo-maintainer project. It follows semver: anything that breaks the public surface bumps the major. The public surface is what is documented in this README and exported from `'@coroama/svelte-box'`.
+Follows semver: anything that breaks the public surface bumps the major. The public surface is what is documented in this README and exported from `'@coroama/svelte-box'`.
 
 The repository ships:
 
-- A test suite (Vitest in browser mode via `@vitest/browser-playwright`) split per module: [tests/box.svelte.test.ts](tests/box.svelte.test.ts) for the proxy Box, [tests/fastbox.svelte.test.ts](tests/fastbox.svelte.test.ts) for FastBox and the `fastbox` factory, and [tests/collections/](tests/collections/) for Map and Set wrappers. Together they cover:
+- A test suite (Vitest in browser mode via `@vitest/browser-playwright`) split per module: [tests/box.svelte.test.ts](tests/box.svelte.test.ts) for the proxy Box, [tests/fastbox.svelte.test.ts](tests/fastbox.svelte.test.ts) for FastBox and the `fastbox` factory, [tests/core.svelte.test.ts](tests/core.svelte.test.ts) for the `CoreBox`/`RawCoreBox` roots and `isBox`, [tests/const.svelte.test.ts](tests/const.svelte.test.ts) for `ConstBox`/`ConstFastBox`, [tests/lazy.svelte.test.ts](tests/lazy.svelte.test.ts) for `LazyBox`, and [tests/collections/](tests/collections/) for Map and Set wrappers. Together they cover:
     - Construction, `instanceof Box`, and subclass `instanceof` propagation through the proxy.
     - Primitive, object, array, function, and class-instance reactivity, including deep-nested mutations and cross-boundary passing through multiple function layers and class storage.
     - All 14 type guards plus reactive re-evaluation as the boxed type changes.
@@ -880,14 +880,18 @@ Issues, contributions, and the changelog: <https://github.com/IsaiahCoroama/svel
 
 ## Maintenance and support
 
-This is a solo-maintainer project. Be honest about what that means when you adopt it.
+Solo-maintainer project. Be honest about what that means when you adopt it.
 
-- **No SLA.** Bugs, feature requests, and questions are answered when the maintainer has time. There is no guaranteed response window. For something time-critical, fork or vendor the code (it is small).
-- **Severity heuristic.** Reproducible correctness bugs and security issues take priority over feature requests and DX polish. Open an issue with a minimal reproduction and you will get the fastest path to a fix.
-- **Contributions welcome.** PRs that include a test and keep the bench numbers within noise are the easiest to land. Big architectural changes should start as an issue first so the design conversation does not stall on a long branch.
-- **Svelte 6 plan.** The library uses only the public Svelte 5 rune API (`$state`, `$state.snapshot`, `$state.eager`) plus the standard ECMAScript Proxy. When Svelte 6 lands, the intent is to support it on the same major version if the Svelte upgrade does not require a public-surface break, otherwise cut a new major. Best-effort on backports to the previous major; no time-bound guarantee until there is a shipped major to support.
-- **Bus factor.** If the maintainer becomes unavailable, the code is small enough (around 790 lines including hand-written `.d.ts` siblings, of which `core/proxy.svelte.js` is the largest single file at ~240 lines) that a fork can keep it alive without specialist knowledge. The README, AGENTS.md, and the test suite are intended to give a future maintainer everything they need to operate the project.
-- **Adoption signal.** This is a young library. There is no implicit claim of broad production usage, and there should not be one. Evaluate it on the API, the tests, the benchmarks, and the live demo, not on download numbers.
+- **No SLA.** Bugs, feature requests, and questions are answered when the maintainer has time. For something time-critical, fork or vendor the code (it is small).
+- **Severity heuristic.** Reproducible correctness bugs and security issues take priority over feature requests and DX polish. Open an issue with a minimal reproduction for the fastest path to a fix.
+- **Contributions welcome.** PRs that include a test and keep the bench numbers within noise are easiest to land. Big architectural changes should start as an issue first so the design conversation does not stall on a long branch.
+- **Svelte 6 plan.** The library uses only the public Svelte 5 rune API (`$state`, `$state.snapshot`, `$state.eager`) plus standard ECMAScript Proxy. When Svelte 6 lands, the intent is to support it on the same major if no public-surface break is required, otherwise cut a new major. Best-effort on backports to the previous major.
+- **Bus factor.** Code is small enough that a fork can keep it alive without specialist knowledge. README, AGENTS.md, and the test suite are intended to give a future maintainer what they need.
+- **Adoption signal.** Young library. Evaluate on the API, the tests, the benchmarks, and the live demo, not on download numbers.
+
+## AI assistance disclosure
+
+Parts of this project were written or refined with help from Anthropic's Claude. That includes documentation drafts, code review passes, test scaffolding, and configuration boilerplate. Every change was read, edited, and accepted by a human maintainer before landing on master. Treat AI involvement the same way you would treat any other contributor: the maintainer is accountable for the result, not the tool that produced the first draft.
 
 ## License
 
