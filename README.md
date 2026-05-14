@@ -302,7 +302,7 @@ if (b.isNumber()) {
 
 ### `class Box<T>`
 
-Prefer the `box(...)` factory below over `new Box(...)` at all call sites. Direct construction stays supported for two cases. First, subclassing — `class Counter extends Box<number>` constructs via `super(initial)`, and instantiating a subclass uses `new Counter(0)`. Second, the rare case where you specifically want the bare `Box<T>` surface without the forwarding shape.
+Prefer the `box(...)` factory below over `new Box(...)` at all call sites. Direct construction stays supported for two cases. First, subclassing: `class Counter extends Box<number>` constructs via `super(initial)`, and instantiating a subclass uses `new Counter(0)`. Second, the rare case where you specifically want the bare `Box<T>` surface without the forwarding shape.
 
 | Member             | Description                                                                        |
 | ------------------ | ---------------------------------------------------------------------------------- |
@@ -649,9 +649,9 @@ The bench suite (`npm run bench`) is a three-way comparison: **Baseline** (the f
 
 **Reading the tables.** Every cell labels its direction explicitly:
 
-- **`Nx slower`** — completed `1/N` operations in the time the Baseline completed 1. So `1.07x slower` means Box did roughly 93 ops while the Baseline did 100.
-- **`Nx faster`** — the rare rows where Box or FastBox edges out Baseline (usually within noise).
-- **`match`** — within ~5% of the Baseline (relative-margin-of-error on the stable rows is ~2 to 3%, so 5% is two error bars wide). Treat as no signal.
+- **`Nx slower`**: completed `1/N` operations in the time the Baseline completed 1. So `1.07x slower` means Box did roughly 93 ops while the Baseline did 100.
+- **`Nx faster`**: the rare rows where Box or FastBox edges out Baseline (usually within noise).
+- **`match`**: within ~5% of the Baseline (relative-margin-of-error on the stable rows is ~2 to 3%, so 5% is two error bars wide). Treat as no signal.
 
 Higher `hz` is faster. Baseline is the column to beat; Box and FastBox are compared against it. FastBox skips the Proxy and tracks Baseline closely on most rows. Box pays a small Proxy tax in exchange for transparent forwarding, callability, and `instanceof` propagation, so it is consistently the slowest of the three but rarely by enough to feel.
 
