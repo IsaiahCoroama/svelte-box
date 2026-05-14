@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { flushSync } from 'svelte';
-import { boxedSet, fastBoxedSet } from '../../src/lib/index.js';
+import { SvelteSet } from 'svelte/reactivity';
+import { boxedSet, constBoxedSet, constFastBoxedSet, fastBoxedSet } from '../../src/lib/index.js';
 import { withRoot } from '../_helpers.svelte.js';
 
 describe('BoxedSet', () => {
@@ -101,5 +102,75 @@ describe('fastBoxedSet', () => {
         const s = fastBoxedSet([1, 2, 3]);
         const out = [...s.value];
         expect(out.sort()).toEqual([1, 2, 3]);
+    });
+});
+
+describe('constBoxedSet', () => {
+    it('wraps a fresh SvelteSet with the given values', () => {
+        const s = constBoxedSet<string>(['a', 'b']);
+        expect(s.value).toBeInstanceOf(SvelteSet);
+        expect(s.value.size).toBe(2);
+        expect(s.has('a')).toBe(true);
+    });
+
+    it('forwarded `add` mutates the inner SvelteSet reactively', () => {
+        const s = constBoxedSet<string>();
+        let observedSize = -1;
+
+        const cleanup = withRoot(() => {
+            $effect(() => {
+                observedSize = s.value.size;
+            });
+        });
+        flushSync();
+        expect(observedSize).toBe(0);
+
+        s.add('a');
+        flushSync();
+        expect(observedSize).toBe(1);
+        expect(s.has('a')).toBe(true);
+
+        cleanup();
+    });
+
+    it('throws on .value reassignment', () => {
+        const s = constBoxedSet<string>();
+        expect(() => {
+            (s as unknown as { value: SvelteSet<string> }).value = new SvelteSet();
+        }).toThrow(TypeError);
+    });
+});
+
+describe('constFastBoxedSet', () => {
+    it('wraps a fresh SvelteSet (no proxy)', () => {
+        const s = constFastBoxedSet<string>(['a']);
+        expect(s.value).toBeInstanceOf(SvelteSet);
+        expect(s.value.has('a')).toBe(true);
+    });
+
+    it('mutations through .value are reactive', () => {
+        const s = constFastBoxedSet<string>(['a']);
+        let observedSize = -1;
+
+        const cleanup = withRoot(() => {
+            $effect(() => {
+                observedSize = s.value.size;
+            });
+        });
+        flushSync();
+        expect(observedSize).toBe(1);
+
+        s.value.add('b');
+        flushSync();
+        expect(observedSize).toBe(2);
+
+        cleanup();
+    });
+
+    it('throws on .value reassignment', () => {
+        const s = constFastBoxedSet<string>();
+        expect(() => {
+            (s as unknown as { value: SvelteSet<string> }).value = new SvelteSet();
+        }).toThrow(TypeError);
     });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { flushSync } from 'svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { boxedMap, fastBoxedMap } from '../../src/lib/index.js';
+import { boxedMap, constBoxedMap, constFastBoxedMap, fastBoxedMap } from '../../src/lib/index.js';
 import { withRoot } from '../_helpers.svelte.js';
 
 describe('BoxedMap', () => {
@@ -172,5 +172,83 @@ describe('fastBoxedMap', () => {
         // Documents the destructive trap so behavior cannot regress silently.
         (m as unknown as { set: (k: unknown, v: unknown) => void }).set('k', 1);
         expect(m.value).toBe('k');
+    });
+});
+
+describe('constBoxedMap', () => {
+    it('wraps a fresh SvelteMap with the given entries', () => {
+        const m = constBoxedMap<string, number>([
+            ['a', 1],
+            ['b', 2]
+        ]);
+        expect(m.value).toBeInstanceOf(SvelteMap);
+        expect(m.value.size).toBe(2);
+        expect(m.value.get('a')).toBe(1);
+    });
+
+    it('forwarded `get` reads through the proxy', () => {
+        const m = constBoxedMap<string, number>([['a', 1]]);
+        expect(m.get('a')).toBe(1);
+    });
+
+    it('forwarded `set` mutates the inner SvelteMap reactively', () => {
+        const m = constBoxedMap<string, number>();
+        let observedSize = -1;
+
+        const cleanup = withRoot(() => {
+            $effect(() => {
+                observedSize = m.value.size;
+            });
+        });
+        flushSync();
+        expect(observedSize).toBe(0);
+
+        m.set('a', 1);
+        flushSync();
+        expect(observedSize).toBe(1);
+        expect(m.get('a')).toBe(1);
+
+        cleanup();
+    });
+
+    it('throws on .value reassignment', () => {
+        const m = constBoxedMap<string, number>();
+        expect(() => {
+            (m as unknown as { value: SvelteMap<string, number> }).value = new SvelteMap();
+        }).toThrow(TypeError);
+    });
+});
+
+describe('constFastBoxedMap', () => {
+    it('wraps a fresh SvelteMap (no proxy)', () => {
+        const m = constFastBoxedMap<string, number>([['a', 1]]);
+        expect(m.value).toBeInstanceOf(SvelteMap);
+        expect(m.value.get('a')).toBe(1);
+    });
+
+    it('mutations through .value are reactive', () => {
+        const m = constFastBoxedMap<string, number>([['a', 1]]);
+        let observedSize = -1;
+
+        const cleanup = withRoot(() => {
+            $effect(() => {
+                observedSize = m.value.size;
+            });
+        });
+        flushSync();
+        expect(observedSize).toBe(1);
+
+        m.value.set('b', 2);
+        flushSync();
+        expect(observedSize).toBe(2);
+
+        cleanup();
+    });
+
+    it('throws on .value reassignment', () => {
+        const m = constFastBoxedMap<string, number>();
+        expect(() => {
+            (m as unknown as { value: SvelteMap<string, number> }).value = new SvelteMap();
+        }).toThrow(TypeError);
     });
 });
