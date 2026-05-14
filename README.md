@@ -314,6 +314,7 @@ Prefer the `box(...)` factory below over `new Box(...)` at all call sites. Direc
 | `box.snapshot()`   | Returns a non-reactive deep clone of the current value. Wraps `$state.snapshot`.   |
 | `box.eager()`      | Returns the current value bypassing async UI suspension. Wraps `$state.eager`.     |
 | `box.toJSON()`     | Returns the inner value. Called automatically by `JSON.stringify`.                 |
+| `box.const()`      | Returns a read-only `ConstBox<T>` capturing the current value.                     |
 
 Type guards: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUndefined`, `isNull`, `isNullish`, `isPrimitive`, `isObject`, `isArray`, `isFunction`, `isMap`, `isSet`. Each narrows the boxed value via the polymorphic-`this` predicate `this is this & BoxCell<X>`, so inside an `if (b.isString())` block the original subclass type is preserved and only the `value` field is refined to `string`.
 
@@ -359,6 +360,57 @@ flag.value = true;
 
 Exported so a parameter type can accept either subclass: `function f(b: BaseBox<number>)` matches both `Box<number>` and `FastBox<number>`. You can subclass `BaseBox` directly, the result is functionally equivalent to `FastBox`.
 
+### `class ConstBox<T>`
+
+Read-only reactive view of a value. Inherits `get()`, `toJSON()`, and the 14 type guards from the shared mixin chain; adds `snapshot()` and `eager()`. Writes through `.value` throw `TypeError`.
+
+Two construction modes:
+
+- `new ConstBox(value)` captures `value` into a fresh internal cell. Subsequent reads of the original source do not propagate.
+- `new ConstBox(otherBox)` (where `otherBox` is a `CoreBox`, `BaseBox`, `Box`, or `FastBox`) shares state with the source, so the const view reads the live value but cannot mutate it. Hand this to a child that should observe but not mutate.
+
+```ts
+import { box, ConstBox, constbox } from '@coroama/svelte-box';
+
+const source = box(0);
+const view = new ConstBox(source); // shared, live
+source.value = 5;
+view.value; // 5
+
+const frozen = constbox(10); // independent, captured value
+```
+
+`box.const()` is the shorthand for `new ConstBox(box.value)`: an independent snapshot at call time.
+
+### `constbox(value | otherBox)`
+
+Factory equivalent to `new ConstBox(...)`. Returns a `ConstBox<T>`.
+
+### `class LazyBox<T>`
+
+Deferred-loader cell. Construct with a loader function; the first `prefetch()` call runs it and caches the resulting promise in `.value`. Subsequent `prefetch()` calls return the same promise until `reset()` clears it.
+
+```ts
+import { lazybox } from '@coroama/svelte-box';
+
+const profile = lazybox(() => fetch('/api/me').then((r) => r.json()));
+
+// Nothing happens at construction time. The loader runs on first prefetch.
+const p = await profile.prefetch();
+
+// Reset to force a re-fetch next time:
+profile.reset();
+await profile.prefetch(); // loader runs again
+```
+
+The loader signature is `() => T | Promise<T>`. A synchronous throw is converted to a rejected promise. A non-thenable return is wrapped in `Promise.resolve`. The cached value is the promise itself, so a single `prefetch()` can be awaited concurrently by multiple consumers without re-running the loader.
+
+`LazyBox` extends `CoreBox<Promise<T> | null>` directly and does not inherit the guard or accessor mixins. The only API is `prefetch()`, `reset()`, and the `.value` field.
+
+### `lazybox(loader)`
+
+Factory equivalent to `new LazyBox(loader)`. Returns a `LazyBox<T>`.
+
 ### Types
 
 ```ts
@@ -368,6 +420,7 @@ type BoxedMap<K, V>; // Boxed<SvelteMap<K, V>>
 type BoxedSet<T>; // Boxed<SvelteSet<T>>
 type FastBoxedMap<K, V>; // FastBox<SvelteMap<K, V>>
 type FastBoxedSet<T>; // FastBox<SvelteSet<T>>
+type LazyLoaderFn<T>; // () => T | Promise<T>
 ```
 
 #### `Boxed<T>` vs `Box<T>` (and the FastBox pair)
