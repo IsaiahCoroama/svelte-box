@@ -2,9 +2,8 @@ name: Benchmarks
 
 on:
   pull_request:
-    # Fire only when a PR closes against master. The job below filters to
-    # merged PRs (not just closed-without-merge) so the run reflects code
-    # that actually landed.
+    # `closed` fires on close-without-merge too; the job filter below
+    # gates on `merged == true`.
     types: [closed]
     branches: [master]
     paths:
@@ -16,8 +15,6 @@ defaults:
   run:
     shell: bash -eo pipefail {0}
 
-# Serialize bench runs so two rapid merges do not race on the PR comment or
-# the artifact slot. Latest run wins.
 concurrency:
   group: bench-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -57,10 +54,8 @@ jobs:
       - name: Run benchmarks (text)
         run: bun run bench | tee bench-output.txt
 
-      # Download the bench output from the most recent successful run of
-      # this workflow, if one exists, so we can diff for regressions.
-      # Best-effort: a missing baseline (first run, expired artifact)
-      # does not fail the workflow.
+      # Best-effort: missing baseline (first run, expired artifact)
+      # leaves the diff empty, does not fail the workflow.
       - name: Download previous bench output for regression diff
         id: prev-bench
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -108,11 +103,7 @@ jobs:
           unzip -o prev-bench.zip -d prev-bench
           mv prev-bench/bench-output.txt prev-bench-output.txt
 
-      # Parse hz columns from both bench outputs, pair by benchmark name,
-      # flag any where the new hz is < 80% of the old hz. Informational
-      # only; appends a "REGRESSIONS DETECTED" block to the PR comment
-      # below but does not fail the workflow. Promote to blocking once
-      # the noise floor is understood.
+      # Informational only. Promote to blocking once noise floor known.
       - name: Compute bench regression report
         id: regression
         if: steps.prev-bench.outputs.found == 'true'
@@ -180,7 +171,7 @@ jobs:
             try {
               regressionReport = fs.readFileSync('regression-report.md', 'utf8');
             } catch {
-              // No previous run; default placeholder above already set.
+              // missing prev-run; placeholder above already set
             }
 
             const marker = '<!-- svelte-box-bench-comment -->';

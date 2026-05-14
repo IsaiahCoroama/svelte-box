@@ -1,9 +1,7 @@
 name: CodeQL
 
-# Static analysis on PRs and pushes that touch code, plus a weekly scan on
-# master regardless of paths. The cron is the safety net for advisories
-# disclosed after the last code-touching merge. Allow-list keeps docs-only
-# PRs from burning runner minutes on a no-op scan.
+# Path filter skips docs-only changes. Weekly cron is the safety net for
+# advisories disclosed after the last code-touching merge.
 on:
   push:
     branches: [master]
@@ -25,7 +23,6 @@ on:
   schedule:
     - cron: '00 20 * * 1'
 
-# One CodeQL run per branch at a time. Newer pushes preempt older ones.
 concurrency:
   group: codeql-${{ github.ref }}
   cancel-in-progress: true

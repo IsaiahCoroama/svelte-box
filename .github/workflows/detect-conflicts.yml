@@ -1,21 +1,14 @@
 name: 'Conflict detector'
 
-# SECURITY (pull_request_target): this event runs with the base-branch
-# token and write permissions. The job below does NOT check out PR head
-# code (no `actions/checkout` with `ref: pull_request.head.sha`, no
-# `bun install`, no script execution against PR contents). The action
-# only reads the merge state via the GitHub API and writes a label.
-# Any future edit that checks out PR head code, runs PR scripts, or
-# evaluates PR-controlled inputs in `run:` blocks reintroduces the
-# standard pull_request_target privilege-escalation pattern; do not add
-# such steps without rewriting the trigger.
+# SECURITY (pull_request_target): runs with base-branch token + write
+# permissions. Must NOT check out PR head code, install PR-declared deps,
+# or evaluate PR-controlled inputs in `run:` blocks. Any such addition
+# reintroduces the standard privilege-escalation pattern.
 
 on:
   pull_request_target:
     types: [opened, synchronize]
 
-# Avoid stacking parallel label updates for the same PR when a contributor
-# pushes a quick series of commits.
 concurrency:
   group: detect-conflicts-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -28,8 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if PRs have merge conflicts
-        # SECURITY: pin to a full commit SHA. This action runs in pull_request_target context
-        # (write permissions, base-branch token) so a floating tag is a supply-chain risk.
         uses: eps1lon/actions-label-merge-conflict@1df065ebe6e3310545d4f4c4e862e43bdca146f0 # v3.0.3
         with:
           dirtyLabel: 'conflicts'

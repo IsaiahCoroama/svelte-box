@@ -1,12 +1,8 @@
 name: Labels
 
-# SECURITY (pull_request_target): this event grants the base-branch token
-# and PR-write permission. The labeler reads file paths from the PR diff
-# (via the API) and the label-checker reads the PR's label set. Neither
-# step checks out PR head code or executes PR-controlled scripts. Do not
-# add `actions/checkout` steps that target PR head, do not pipe
-# `pull_request.head.*` fields into `run:` blocks, and do not install
-# dependencies declared in the PR's `package.json`.
+# SECURITY (pull_request_target): runs with base-branch token + PR-write
+# permission. Must NOT check out PR head code, install PR-declared deps,
+# or pipe `pull_request.head.*` into `run:` blocks.
 
 on:
   pull_request_target:
@@ -14,12 +10,9 @@ on:
       - opened
       - synchronize
       - reopened
-      # For label-checker
       - labeled
       - unlabeled
 
-# Collapse redundant runs when a contributor flaps labels or pushes a
-# rapid series of commits to the same PR.
 concurrency:
   group: labeler-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -34,7 +27,6 @@ jobs:
       - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
         if: ${{ github.event.action != 'labeled' && github.event.action != 'unlabeled' }}
       - run: echo "Done adding labels"
-  # Run this after labeler applied labels
   check-labels:
     needs:
       - labeler
@@ -44,13 +36,7 @@ jobs:
     steps:
       - uses: docker://agilepathway/pull-request-label-checker@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61 # v1.6.65
         with:
-          # `any_of` requires at least one of the listed labels. We use this
-          # instead of `one_of` (exactly one) because most PRs are multi-
-          # aspect: a security fix that also lands a refactor is
-          # both `security` and `refactor`. Intent labels (`feature`, `bug`,
-          # `refactor`) and judgment labels (`security`, `breaking`) are
-          # author/maintainer-applied. `docs` and `internal` are auto-applied
-          # by the labeler step above. `deps` is applied by Dependabot from
-          # `.github/dependabot.yml`.
+          # `any_of` = at least one (vs `one_of` = exactly one). PRs are
+          # often multi-aspect.
           any_of: breaking,security,feature,bug,refactor,docs,internal,deps
           repo_token: ${{ secrets.GITHUB_TOKEN }}
