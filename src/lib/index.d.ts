@@ -1,10 +1,29 @@
-// `BoxCell<T>` is the `{ value: T }` shape used as the narrowed-value side
-// of the polymorphic type guards on BaseBox. Re-exported so consumers can
-// write their own guards on Box/FastBox subclasses with the same shape.
-// `PrimitiveType` is the union returned by `isPrimitive` narrowing.
-export type { BoxCell, PrimitiveType } from './core/utils.js';
+export type { PrimitiveType } from './core/utils.js';
+export type { AnyBox } from './core/core.svelte.js';
+export { isBox, type BoxCell } from './core/core.svelte.js';
 export { BaseBox } from './core/base.svelte.js';
-export { Box, box, type Boxed } from './core/proxy.svelte.js';
-export { FastBox, fastbox, type FastBoxed } from './core/fast.svelte.js';
-export { boxedMap, fastBoxedMap, type BoxedMap, type FastBoxedMap } from './collections/map.js';
-export { boxedSet, fastBoxedSet, type BoxedSet, type FastBoxedSet } from './collections/set.js';
+export { Box, box, type Boxed } from './core/proxy/box.js';
+export { ConstBox, constbox, type ConstBoxed } from './core/proxy/const.js';
+export { FastBox, fastbox, type FastBoxed } from './core/fast/box.js';
+export { ConstFastBox, constfastbox } from './core/fast/const.svelte.js';
+export { LazyBox, lazybox, type LazyLoaderFn } from './core/lazy.js';
+export {
+    boxedMap,
+    fastBoxedMap,
+    constBoxedMap,
+    constFastBoxedMap,
+    type BoxedMap,
+    type FastBoxedMap,
+    type ConstBoxedMap,
+    type ConstFastBoxedMap
+} from './core/collections/map.js';
+export {
+    boxedSet,
+    fastBoxedSet,
+    constBoxedSet,
+    constFastBoxedSet,
+    type BoxedSet,
+    type FastBoxedSet,
+    type ConstBoxedSet,
+    type ConstFastBoxedSet
+} from './core/collections/set.js';
