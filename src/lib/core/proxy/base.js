@@ -2,18 +2,18 @@ import { isFunction, isObjectLike } from '../utils.js';
 
 // Shared dummy proxy target. Function so the proxy is callable and
 // constructable when the inner value is a function or class. Never
-// mutated; defensive traps below protect the shared target.
+// mutated; defensive traps below protect it across instances.
 const PROXY_TARGET = function () {};
 
-// Bound-method cache so forwarded function reads have stable identity.
-// Layout: WeakMap<inner, Map<prop, { source, bound }>>. `source`
-// detects reassignment; WeakMap drops on inner GC.
+// Bound-method cache so forwarded function reads return stable
+// references. Layout: WeakMap<inner, Map<prop, { source, bound }>>.
+// `source` detects reassignment; WeakMap drops entries on inner GC.
 const bindCache = new WeakMap();
 
 /**
- * Return a bound version of `inner[prop]` if it is a function, cached
- * so repeated reads return the same reference. Identity is required
- * for `{#each}` keying and consumer memoization to work.
+ * Bound version of `inner[prop]` if it is a function, cached so repeated
+ * reads return the same reference. Identity matters for `{#each}` keying
+ * and consumer memoization.
  *
  * @param {object | Function} inner
  * @param {string | symbol} prop
@@ -39,37 +39,33 @@ export function bindForwarded(inner, prop, source) {
 const EMPTY_SET = new Set();
 
 /**
- * Build a Proxy wrapping `self` so reads forward to its inner value
- * and writes follow the chosen policy.
- *
- * Shared between `Box` (mutable, writes route to self/inner) and
- * `ConstBox` (read-only, writes throw). Caller's constructor should
+ * Build a Proxy wrapping `self` so reads forward to its inner value and
+ * writes follow the chosen policy. Shared between `Box` (mutable) and
+ * `ConstBox` (read-only). The caller's constructor should
  * `return buildBoxProxy(this, opts);` after `super(initial)`.
  *
  * @param {{ value: unknown } & Record<PropertyKey, unknown>} self the
- *   underlying box instance (the proxy target's sibling — reads of own
- *   keys are routed to it, the proxy itself is returned from the
- *   constructor)
+ *   underlying box instance. Reads of own keys route to it; the proxy
+ *   itself is returned from the constructor.
  * @param {object} [opts]
  * @param {boolean} [opts.readOnly=false] when true, every write trap
- *   throws `TypeError` with `opts.writeMessage`. When false, writes
- *   route to `self` (own keys) or to `self.value` (inner keys).
+ *   throws `TypeError(opts.writeMessage)`. When false, writes route to
+ *   `self` (own keys) or `self.value` (inner keys).
  * @param {Set<string|symbol>} [opts.forwardFirst] property names where
- *   the inner value's method should win over the box's own method (e.g.
- *   `get`/`set` for `boxedMap` ergonomics).
- * @param {string} [opts.writeMessage] TypeError message thrown by every
- *   write trap when `readOnly` is true.
- * @param {string} [opts.deleteOwnMessage] TypeError message thrown when
- *   attempting to delete an own helper key on a mutable box. Ignored
- *   when `readOnly` is true.
- * @param {string} [opts.preventExtensionsMessage] TypeError message
- *   thrown by `preventExtensions` on both variants.
- * @param {string} [opts.setPrototypeOfMessage] TypeError message thrown
- *   by `setPrototypeOf` on both variants.
- * @param {string} [opts.applyNonFunctionMessage] TypeError message
- *   thrown by `apply` when the inner value is not a function.
- * @param {string} [opts.constructNonFunctionMessage] TypeError message
- *   thrown by `construct` when the inner value is not a function.
+ *   the inner method should win over the box's own (e.g. `get`/`set`
+ *   for `boxedMap` ergonomics).
+ * @param {string} [opts.writeMessage] thrown by every write trap when
+ *   `readOnly` is true.
+ * @param {string} [opts.deleteOwnMessage] thrown when deleting an own
+ *   helper key on a mutable box. Ignored under `readOnly`.
+ * @param {string} [opts.preventExtensionsMessage] thrown by
+ *   `preventExtensions` on both variants.
+ * @param {string} [opts.setPrototypeOfMessage] thrown by
+ *   `setPrototypeOf` on both variants.
+ * @param {string} [opts.applyNonFunctionMessage] thrown by `apply` when
+ *   the inner value is not a function.
+ * @param {string} [opts.constructNonFunctionMessage] thrown by
+ *   `construct` when the inner value is not a function.
  */
 export function buildBoxProxy(self, opts = {}) {
     const {
@@ -83,10 +79,10 @@ export function buildBoxProxy(self, opts = {}) {
         constructNonFunctionMessage = 'Box value is not a constructor'
     } = opts;
 
-    // "Is this key owned by Box/subclass?" cache. Seeded once at
-    // construction (positives), filled on miss (negatives). Both are
-    // retained for the instance's lifetime; methods added or removed
-    // after the first read of a given key are not reflected.
+    // "Is this key owned by Box/subclass?" cache. Positives seeded at
+    // construction, negatives filled on miss. Both retained for the
+    // instance's lifetime, so methods added or removed after the first
+    // read of a given key are not reflected.
     const ownCache = new Map();
     {
         let proto = self;
@@ -168,8 +164,8 @@ export function buildBoxProxy(self, opts = {}) {
                   return Reflect.deleteProperty(inner, prop);
               },
         has(t, prop) {
-            // Proxy invariant: must report true for non-configurable
-            // own keys of the target (e.g. `prototype` on a function).
+            // Proxy invariant: report true for non-configurable own
+            // keys of the target (e.g. `prototype` on a function).
             const td = Reflect.getOwnPropertyDescriptor(t, prop);
             if (td && !td.configurable) return true;
 

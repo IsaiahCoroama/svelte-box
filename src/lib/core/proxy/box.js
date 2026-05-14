@@ -2,9 +2,8 @@ import { BaseBox } from '../base.svelte.js';
 import { ConstBox } from './const.js';
 import { buildBoxProxy } from './base.js';
 
-// Inner-method-wins for collision-prone names so e.g.
-// `boxedMap.set(k, v)` invokes SvelteMap.set, not Box.set.
-// Symbol keys miss this lookup.
+// Inner-wins for collision-prone names so `boxedMap.set(k, v)` invokes
+// SvelteMap.set, not Box.set. Symbol keys are not consulted.
 const FORWARD_FIRST = new Set(['get', 'set']);
 
 export class Box extends BaseBox {
@@ -29,9 +28,8 @@ export class Box extends BaseBox {
     }
 
     /**
-     * Derive a read-only proxy-backed {@link ConstBox} capturing the
-     * current value. Mirrors `Box`'s own proxy semantics on the const
-     * view so transparent forwarding is preserved (read-only).
+     * Read-only proxy-backed {@link ConstBox} capturing the current
+     * value. Preserves transparent forwarding (read-only).
      */
     const() {
         return new ConstBox(this.value);
