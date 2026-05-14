@@ -32,16 +32,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push master to develop
-        # `git cherry` filters out develop commits whose patch-id is on
-        # master (rebase-merge originals). Anything left is real new work.
+        # Squash and rebase merges both rewrite SHAs and patch boundaries,
+        # so `git cherry` flags every still-on-develop commit as "unique"
+        # even when the work has landed on master. Log unique commits as a
+        # warning so a misuse of develop (direct pushes, branching from
+        # develop) is visible in the run log, but always proceed with the
+        # reset. The intent of this workflow is to keep develop at master;
+        # single-maintainer guarantee plus the local clone retaining any
+        # lost commits is the recovery story.
         run: |
           git fetch origin develop:refs/remotes/origin/develop
           UNIQUE=$(git cherry HEAD refs/remotes/origin/develop | grep '^+' || true)
           if [[ -n "$UNIQUE" ]]; then
-            echo "::warning::develop has unique commits not on master:"
+            echo "::warning::develop had unique commits not on master, force-reset will drop them:"
             echo "$UNIQUE"
-            echo "Refusing to overwrite. Rebase develop onto master manually."
-            exit 0
           fi
           git push \
             --force-with-lease=refs/heads/develop:refs/remotes/origin/develop \
