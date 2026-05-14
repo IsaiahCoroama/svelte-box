@@ -39,7 +39,7 @@ Other things that are not allowed regardless of phrasing:
 
 ## Enforcement
 
-The maintainer decides. Reports go to `coroamaisaiah@gmail.com`. Escalation path is: warning, temporary block, permanent block. There is no committee, no appeals process, no public adjudication. If you think the maintainer got it wrong, fork the project. The license permits it.
+The maintainer decides. Reports go to `isaiahcoroama@protonmail.com`. Escalation path is: warning, temporary block, permanent block. There is no committee, no appeals process, no public adjudication. If you think the maintainer got it wrong, fork the project. The license permits it.
 
 ## Note on platform rules
 
