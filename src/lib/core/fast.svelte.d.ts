@@ -16,7 +16,7 @@ import { BaseBox } from './base.svelte.js';
  * - **`FastBoxed<T>`** for symmetry with `Boxed<T>` at factory boundaries
  *   and in public APIs, so the type names line up if you later switch a
  *   given call site from `FastBox` to `Box` (note: the runtime behavior
- *   changes too — proxy, callability, and `instanceof` propagation come
+ *   changes too. Proxy, callability, and `instanceof` propagation come
  *   with `Box`).
  * - **`FastBox<T>`** for parameter types, matching how you would write
  *   `Box<T>` for the same role.
