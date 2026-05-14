@@ -9,37 +9,26 @@ import {
 const _Mixins = BoxGuardsMixin(BoxSerializableMixin(BoxGetterMixin(RawCoreBox)));
 
 /**
- * Read-only reactive view of a value. Plain class, no Proxy. Reach
- * inner-object properties through `.value`. Wraps either a plain value
- * (captured into a fresh internal cell) or an existing {@link AnyBox}
- * (shared state with the source). Writes through `.value` throw
- * `TypeError`.
+ * Read-only reactive view. Plain class, no Proxy. Reach inner-object
+ * properties through `.value`. Wraps a plain value (captured into a
+ * fresh cell) or an existing {@link AnyBox} (shared state with the
+ * source). Writes through `.value` throw `TypeError`.
  *
- * `ConstFastBox` is the read-only counterpart to `FastBox`: same
- * `.value`-only access pattern, but with mutation rejected at the
- * accessor. The companion class {@link ConstBox} adds a read-only
- * Proxy that forwards inner-object reads the way `Box` does.
+ * Read-only counterpart to `FastBox` with the same `.value`-only access
+ * pattern. The proxied variant is {@link ConstBox}.
  *
- * Storage is `$state.raw` (inherited from {@link RawCoreBox}). The
- * contract is "snapshot of reference, not live view": if the caller
- * mutates a captured object through an external reference, those
- * mutations are not amplified into reactive updates here. Use the
- * borrow-mode constructor (pass an `AnyBox`) for shared, live
- * reactivity instead.
- *
- * Inherits from `RawCoreBox`, so `isBox(constFast)` is true and the
- * `AnyBox<T>` type accepts a `ConstFastBox` like any other reactive
- * cell.
- *
- * Use `fastbox.const()` to derive a const view from a `FastBox`, or
- * `new ConstFastBox(otherBox)` to share state with the source cell.
+ * Storage is `$state.raw` (inherited from {@link RawCoreBox}): capture
+ * mode is a snapshot of reference, so external mutations of the
+ * captured object are not amplified into reactive updates. Use borrow
+ * mode (`new ConstFastBox(otherBox)`) for shared live reactivity, or
+ * `fastbox.const()` for a snapshot from a `FastBox`.
  */
 export class ConstFastBox extends _Mixins {
     #borrowed;
 
     constructor(initial) {
         if (isBox(initial)) {
-            // Borrow mode: the inherited raw cell stays unused.
+            // Borrow mode: inherited raw cell stays unused.
             super(undefined);
             this.#borrowed = initial;
         } else {
