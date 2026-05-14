@@ -5,58 +5,50 @@ import type { FastBox } from '../fast/box.js';
 import type { ConstFastBox } from '../fast/const.svelte.js';
 
 /**
- * A Box wrapping a `SvelteSet`. The set stays reactive on every `add`,
- * `delete`, and `clear`. The Box reference itself can be reassigned later
- * with `box.value = new SvelteSet(...)`.
+ * A Box wrapping a `SvelteSet`. Reactive on every `add`, `delete`, and
+ * `clear`. Replace with `box.value = new SvelteSet(...)`.
  */
 export type BoxedSet<T> = Boxed<SvelteSet<T>>;
 
 /**
- * A {@link FastBox} around a `SvelteSet`. Reactive on every `add`,
- * `delete`, and `clear`. No Proxy. Reach set methods through `.value`:
- * write `s.value.add(t)`, `s.value.has(t)`, etc. The Box reference can
- * be replaced with `s.value = new SvelteSet(...)`.
+ * A {@link FastBox} around a `SvelteSet`. Reactive on every mutation.
+ * No Proxy: reach methods through `.value` (`s.value.add(t)`,
+ * `s.value.has(t)`). Replace with `s.value = new SvelteSet(...)`.
  *
- * `FastBox` does not forward, so any inner-method names that collide
- * with `BaseBox` helpers stay destructive. `FastBoxedSet` is safer than
- * `FastBoxedMap` (Set has no `set` or `get`), but the same rule applies:
- * always go through `.value` for set methods.
+ * `Set` has no `set` or `get`, so `FastBoxedSet` does not hit the same
+ * destructive trap as `FastBoxedMap`. The "go through `.value`" rule
+ * still applies.
  */
 export type FastBoxedSet<T> = FastBox<SvelteSet<T>>;
 
 /**
- * A {@link ConstBoxed} around a `SvelteSet`. The set reference is
- * frozen (writing `s.value = newSet` throws), but the underlying
- * `SvelteSet` stays reactive: forwarded method calls like
- * `s.add(t)` still mutate and trigger reactivity.
+ * A {@link ConstBoxed} around a `SvelteSet`. Reference is frozen;
+ * forwarded calls (`s.add(t)`) still mutate.
  */
 export type ConstBoxedSet<T> = ConstBoxed<SvelteSet<T>>;
 
 /**
- * A {@link ConstFastBox} around a `SvelteSet`. No Proxy, so reach set
- * methods through `.value` (`s.value.add(t)`). The reference is frozen
- * (`s.value = newSet` throws); the inner `SvelteSet` remains reactive
- * on mutation.
+ * A {@link ConstFastBox} around a `SvelteSet`. No Proxy; reach methods
+ * through `.value`. Reference is frozen, inner set stays reactive.
  */
 export type ConstFastBoxedSet<T> = ConstFastBox<SvelteSet<T>>;
 
 /**
- * Create a {@link BoxedSet}, a Box around a fresh `SvelteSet`. Mutations to
- * the set (`add`, `delete`, `clear`) are reactive.
+ * {@link BoxedSet}: Box around a fresh `SvelteSet`. Reactive on every
+ * mutation (`add`, `delete`, `clear`).
  *
  * @param values Optional initial values, same shape as `Set`'s constructor.
  */
 export declare function boxedSet<T>(values?: Iterable<T> | null): BoxedSet<T>;
 
 /**
- * Create a {@link FastBoxedSet}, a {@link FastBox} around a `SvelteSet`.
- * Same trade-off as `fastBoxedMap`: no Proxy, so set methods are reached
- * through `.value`:
+ * {@link FastBoxedSet}: {@link FastBox} around a fresh `SvelteSet`. Set
+ * methods through `.value`:
  *
  * ```ts
  * const s = fastBoxedSet<string>(['a']);
- * s.value.add('b'); // reactive
- * s.value.has('a'); // true
+ * s.value.add('b');
+ * s.value.has('a');
  * ```
  *
  * @param values Optional initial values, same shape as `Set`'s constructor.
@@ -64,18 +56,17 @@ export declare function boxedSet<T>(values?: Iterable<T> | null): BoxedSet<T>;
 export declare function fastBoxedSet<T>(values?: Iterable<T> | null): FastBoxedSet<T>;
 
 /**
- * Create a {@link ConstBoxedSet}, a {@link ConstBox} around a fresh
- * `SvelteSet`. The set reference is frozen; the underlying contents
- * stay reactive through forwarded method calls (`s.add(t)`).
+ * {@link ConstBoxedSet}: {@link ConstBox} around a fresh `SvelteSet`.
+ * Reference is frozen; forwarded calls (`s.add(t)`) still mutate.
  *
  * @param values Optional initial values, same shape as `Set`'s constructor.
  */
 export declare function constBoxedSet<T>(values?: Iterable<T> | null): ConstBoxedSet<T>;
 
 /**
- * Create a {@link ConstFastBoxedSet}, a {@link ConstFastBox} around a
- * fresh `SvelteSet`. No Proxy; reach set methods through `.value`. The
- * reference is frozen; the inner set stays reactive on mutation.
+ * {@link ConstFastBoxedSet}: {@link ConstFastBox} around a fresh
+ * `SvelteSet`. No Proxy; methods through `.value`. Reference is frozen,
+ * inner set stays reactive.
  *
  * @param values Optional initial values, same shape as `Set`'s constructor.
  */

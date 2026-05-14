@@ -5,63 +5,54 @@ import type { FastBox } from '../fast/box.js';
 import type { ConstFastBox } from '../fast/const.svelte.js';
 
 /**
- * A Box wrapping a `SvelteMap`. The map stays reactive on every `set`,
- * `delete`, and `clear`. The Box reference itself can be reassigned later
- * with `box.value = new SvelteMap(...)` if you need to swap the whole map
- * out without breaking subscribers.
+ * A Box wrapping a `SvelteMap`. Reactive on every `set`, `delete`, and
+ * `clear`. Swap the whole map with `box.value = new SvelteMap(...)`.
  */
 export type BoxedMap<K, V> = Boxed<SvelteMap<K, V>>;
 
 /**
- * A {@link FastBox} around a `SvelteMap`. The map is reactive on every
- * `set`, `delete`, and `clear`. Unlike {@link BoxedMap}, there is no
- * Proxy, so map methods are reached through `.value`: write
- * `m.value.set(k, v)`, `m.value.get(k)`, `m.value.delete(k)`. The Box
- * reference can still be replaced wholesale with
+ * A {@link FastBox} around a `SvelteMap`. Reactive on `set`, `delete`,
+ * `clear`. No Proxy: reach map methods through `.value`
+ * (`m.value.set(k, v)`, `m.value.get(k)`). Replace with
  * `m.value = new SvelteMap(...)`.
  *
  * Calling `m.set(k, v)` directly is a destructive trap: `FastBox.set`
- * takes a single argument and overwrites the whole `.value` with `k`,
- * dropping `v`. Always go through `m.value.set(k, v)` instead. Same for
- * `m.value.get(k)` over `m.get(k)`.
+ * overwrites `.value` with `k`. Same for `m.get(k)`. Always go through
+ * `.value`.
  */
 export type FastBoxedMap<K, V> = FastBox<SvelteMap<K, V>>;
 
 /**
- * A {@link ConstBoxed} around a `SvelteMap`. The map reference is
- * frozen (writing `m.value = newMap` throws), but the underlying
- * `SvelteMap` stays reactive: forwarded method calls like
- * `m.set(k, v)` still mutate and trigger reactivity. Use when the
- * collection identity must not change but its contents can.
+ * A {@link ConstBoxed} around a `SvelteMap`. The reference is frozen
+ * (`m.value = newMap` throws), but the inner `SvelteMap` stays reactive:
+ * forwarded calls like `m.set(k, v)` still mutate.
  */
 export type ConstBoxedMap<K, V> = ConstBoxed<SvelteMap<K, V>>;
 
 /**
  * A {@link ConstFastBox} around a `SvelteMap`. No Proxy, so reach map
- * methods through `.value` (`m.value.set(k, v)`). The reference is
- * frozen (`m.value = newMap` throws); the inner `SvelteMap` remains
- * reactive on mutation.
+ * methods through `.value`. The reference is frozen; the inner
+ * `SvelteMap` stays reactive on mutation.
  */
 export type ConstFastBoxedMap<K, V> = ConstFastBox<SvelteMap<K, V>>;
 
 /**
- * Create a {@link BoxedMap}, a Box around a fresh `SvelteMap`. Mutations to
- * the map (`set`, `delete`, `clear`) are reactive.
+ * {@link BoxedMap}: Box around a fresh `SvelteMap`. Reactive on every
+ * mutation (`set`, `delete`, `clear`).
  *
  * @param entries Optional initial entries, same shape as `Map`'s constructor.
  */
 export declare function boxedMap<K, V>(entries?: Iterable<readonly [K, V]> | null): BoxedMap<K, V>;
 
 /**
- * Create a {@link FastBoxedMap}, a {@link FastBox} around a `SvelteMap`.
- * Use this when you do not need the transparent forwarding `boxedMap`
- * provides and want the lower per-instance cost of `FastBox`. Map
- * methods must be called through `.value`:
+ * {@link FastBoxedMap}: {@link FastBox} around a fresh `SvelteMap`. Use
+ * for the lower per-instance cost of `FastBox`. Map methods are reached
+ * through `.value`:
  *
  * ```ts
  * const m = fastBoxedMap<string, number>([['a', 1]]);
- * m.value.set('b', 2); // reactive
- * m.value.get('a'); // 1
+ * m.value.set('b', 2);
+ * m.value.get('a');
  * ```
  *
  * @param entries Optional initial entries, same shape as `Map`'s constructor.
@@ -71,9 +62,8 @@ export declare function fastBoxedMap<K, V>(
 ): FastBoxedMap<K, V>;
 
 /**
- * Create a {@link ConstBoxedMap}, a {@link ConstBox} around a fresh
- * `SvelteMap`. The map reference is frozen; the underlying contents
- * stay reactive through forwarded method calls (`m.set(k, v)`).
+ * {@link ConstBoxedMap}: {@link ConstBox} around a fresh `SvelteMap`.
+ * Reference is frozen; forwarded calls (`m.set(k, v)`) still mutate.
  *
  * @param entries Optional initial entries, same shape as `Map`'s constructor.
  */
@@ -82,9 +72,9 @@ export declare function constBoxedMap<K, V>(
 ): ConstBoxedMap<K, V>;
 
 /**
- * Create a {@link ConstFastBoxedMap}, a {@link ConstFastBox} around a
- * fresh `SvelteMap`. No Proxy; reach map methods through `.value`. The
- * reference is frozen; the inner map stays reactive on mutation.
+ * {@link ConstFastBoxedMap}: {@link ConstFastBox} around a fresh
+ * `SvelteMap`. No Proxy; reach methods through `.value`. Reference is
+ * frozen, inner map stays reactive.
  *
  * @param entries Optional initial entries, same shape as `Map`'s constructor.
  */
