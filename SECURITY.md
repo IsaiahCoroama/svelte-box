@@ -8,7 +8,7 @@ Security fixes target the latest published minor on the `latest` dist-tag. Older
 
 Please do not file a public GitHub issue for security reports.
 
-The preferred channel is [GitHub Private Vulnerability Reporting](https://github.com/IsaiahCoroama/svelte-box/security/advisories/new). Alternative: email `coroamaisaiah@gmail.com`.
+The preferred channel is [GitHub Private Vulnerability Reporting](https://github.com/IsaiahCoroama/svelte-box/security/advisories/new). Alternative: email `isaiahcoroama@protonmail.com`.
 
 Include:
 
