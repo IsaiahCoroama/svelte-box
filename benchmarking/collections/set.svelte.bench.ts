@@ -1,9 +1,11 @@
 /**
- * Benchmark suite for the boxedSet / fastBoxedSet factories.
+ * Benchmark suite for the boxedSet factories.
  *
- * Three-way comparison: bare `SvelteSet` (baseline), `boxedSet` (Box wrapping
- * a SvelteSet, forwarded `.add`), and `fastBoxedSet` (FastBox wrapping a
- * SvelteSet, accessed through `.value`).
+ * Comparison across the four variants: `boxedSet` (Box, forwarded
+ * methods), `fastBoxedSet` (FastBox, access via `.value`),
+ * `constBoxedSet` (ConstBox, forwarded methods, value reference
+ * frozen), and `constFastBoxedSet` (ConstFastBox, access via `.value`,
+ * value reference frozen). Bare `SvelteSet` is the baseline.
  *
  * Each bench reseeds a fresh set every `RESET_EVERY` iterations so most
  * `add` calls hit the new-key path rather than the cheap duplicate-check
@@ -13,7 +15,7 @@
 
 import { describe, bench } from 'vitest';
 import { SvelteSet } from 'svelte/reactivity';
-import { boxedSet, fastBoxedSet } from '../../src/lib/index.js';
+import { boxedSet, constBoxedSet, constFastBoxedSet, fastBoxedSet } from '../../src/lib/index.js';
 
 const RESET_EVERY = 10_000;
 
@@ -21,6 +23,8 @@ describe('Set.add', () => {
     let ss = new SvelteSet<number>();
     let bs = boxedSet<number>();
     let fbs = fastBoxedSet<number>();
+    let cbs = constBoxedSet<number>();
+    let cfbs = constFastBoxedSet<number>();
     let i = 0;
 
     bench('Baseline: SvelteSet.add(i)', () => {
@@ -36,5 +40,15 @@ describe('Set.add', () => {
     bench('FastBox: fastBoxedSet.value.add(i)', () => {
         if (i % RESET_EVERY === 0) fbs = fastBoxedSet<number>();
         fbs.value.add(i++);
+    });
+
+    bench('ConstBox: constBoxedSet.add(i) (forwarded)', () => {
+        if (i % RESET_EVERY === 0) cbs = constBoxedSet<number>();
+        cbs.add(i++);
+    });
+
+    bench('ConstFastBox: constFastBoxedSet.value.add(i)', () => {
+        if (i % RESET_EVERY === 0) cfbs = constFastBoxedSet<number>();
+        cfbs.value.add(i++);
     });
 });
