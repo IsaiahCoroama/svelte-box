@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Added
+
+- **`ConstBox<T>` read-only container** and the `constbox()` factory. Wraps either a plain value (captured into a fresh internal cell) or an existing `CoreBox`/`BaseBox` (shared state). Writes through `.value` throw `TypeError`. Inherits the standard guard, getter, and `toJSON` surface plus `snapshot`/`eager`. Useful for handing out a read-only view of state without exposing the full mutating API.
+- **`LazyBox<T>` deferred-loader cell** and the `lazybox()` factory. First `prefetch()` invokes the loader and caches the resulting promise in `.value`; later calls return the same promise until `reset()` clears it. Synchronous throws from the loader are converted to rejected promises; non-thenable returns are wrapped in `Promise.resolve`. Loader signature: `() => T | Promise<T>`.
+- **`BaseBox.const()`** method available on every `Box`, `FastBox`, and `BaseBox` instance. Returns an independent `ConstBox<T>` snapshot of the current value.
+
+### Changed
+
+- **Refactored `BaseBox` to a mixin composition.** The reactive cell now lives in `CoreBox<T>` ([src/lib/core/core.svelte.js](src/lib/core/core.svelte.js)); helper methods and guards live in `BoxGuardsMixin`, `BoxAccessorMixin` (the union of `BoxGetterMixin`/`BoxSetterMixin`/`BoxDeleterMixin`), and `BoxSerializableMixin`. `BaseBox` composes them at module scope. No public-API change: the same methods land on the same classes with the same signatures, and `Box`/`FastBox` behave identically.
+- **`BoxGuardsMixin` type constraint tightened** to `BoxConstructor<BoxCell<T>>` for parity with the other mixins. Passing a base class without a `value: T` member is now a TypeScript error rather than a runtime failure on first guard call.
+
+### Internal
+
+- `CoreBox`, `corebox`, the mixin functions, and the per-mixin types (`BoxGuards`, `BoxAccessor`, `BoxSerializable`, `BoxGetter`, `BoxSetter`, `BoxDeleter`) are intentionally not re-exported from the public barrel. They are documented in `AGENTS.md` as the seam for adding new helper categories.
+
 ## [0.2.2] - 2026-05-13
 
 Pipeline-hardening release plus a single deprecation. No runtime behavior change in `src/lib/`. Drop-in upgrade with zero runtime or breaking API differences. Promoted from `0.2.2-rc.1` after the RC publish ran clean: tag-ancestry check, `npm audit signatures`, CycloneDX SBOM via `cdxgen`, OIDC publish, and least-privilege token scopes.
