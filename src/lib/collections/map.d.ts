@@ -1,6 +1,6 @@
 import type { SvelteMap } from 'svelte/reactivity';
 import type { Boxed } from '../core/proxy.svelte.js';
-import type { FastBoxed } from '../core/fast.svelte.js';
+import type { FastBox } from '../core/fast.svelte.js';
 
 /**
  * A Box wrapping a `SvelteMap`. The map stays reactive on every `set`,
@@ -11,9 +11,9 @@ import type { FastBoxed } from '../core/fast.svelte.js';
 export type BoxedMap<K, V> = Boxed<SvelteMap<K, V>>;
 
 /**
- * A {@link FastBoxed} `SvelteMap`. The map is reactive on every `set`,
- * `delete`, and `clear`. Unlike {@link BoxedMap}, there is no Proxy, so
- * map methods are reached through `.value`: write
+ * A {@link FastBox} around a `SvelteMap`. The map is reactive on every
+ * `set`, `delete`, and `clear`. Unlike {@link BoxedMap}, there is no
+ * Proxy, so map methods are reached through `.value`: write
  * `m.value.set(k, v)`, `m.value.get(k)`, `m.value.delete(k)`. The Box
  * reference can still be replaced wholesale with
  * `m.value = new SvelteMap(...)`.
@@ -23,7 +23,7 @@ export type BoxedMap<K, V> = Boxed<SvelteMap<K, V>>;
  * dropping `v`. Always go through `m.value.set(k, v)` instead. Same for
  * `m.value.get(k)` over `m.get(k)`.
  */
-export type FastBoxedMap<K, V> = FastBoxed<SvelteMap<K, V>>;
+export type FastBoxedMap<K, V> = FastBox<SvelteMap<K, V>>;
 
 /**
  * Create a {@link BoxedMap}, a Box around a fresh `SvelteMap`. Mutations to
@@ -34,10 +34,10 @@ export type FastBoxedMap<K, V> = FastBoxed<SvelteMap<K, V>>;
 export declare function boxedMap<K, V>(entries?: Iterable<readonly [K, V]> | null): BoxedMap<K, V>;
 
 /**
- * Create a {@link FastBoxedMap}, a `FastBoxed` `SvelteMap`. Use this
- * when you do not need the transparent forwarding `boxedMap` provides and
- * want the lower per-instance cost of `FastBoxed`. Map methods must
- * be called through `.value`:
+ * Create a {@link FastBoxedMap}, a {@link FastBox} around a `SvelteMap`.
+ * Use this when you do not need the transparent forwarding `boxedMap`
+ * provides and want the lower per-instance cost of `FastBox`. Map
+ * methods must be called through `.value`:
  *
  * ```ts
  * const m = fastBoxedMap<string, number>([['a', 1]]);

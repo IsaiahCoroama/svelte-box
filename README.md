@@ -346,7 +346,7 @@ Prefer the `fastbox(...)` factory below for parity with `box(...)`.
 
 ### `fastbox(value)`
 
-Factory equivalent to `new FastBox(value)`. Returns a `FastBoxed<T>`, currently a plain alias for `FastBox<T>`.
+Factory equivalent to `new FastBox(value)`. Returns a `FastBox<T>`.
 
 ```ts
 import { fastbox } from '@coroama/svelte-box';
@@ -363,11 +363,11 @@ Exported so a parameter type can accept either subclass: `function f(b: BaseBox<
 
 ```ts
 type Boxed<T>; // Box<T> with transparent forwarding
-type FastBoxed<T>; // alias for FastBox<T>, no forwarding shape
+type FastBoxed<T>; // @deprecated since 0.2.2, use FastBox<T> directly
 type BoxedMap<K, V>; // Boxed<SvelteMap<K, V>>
 type BoxedSet<T>; // Boxed<SvelteSet<T>>
-type FastBoxedMap<K, V>; // FastBoxed<SvelteMap<K, V>>
-type FastBoxedSet<T>; // FastBoxed<SvelteSet<T>>
+type FastBoxedMap<K, V>; // FastBox<SvelteMap<K, V>>
+type FastBoxedSet<T>; // FastBox<SvelteSet<T>>
 ```
 
 #### `Boxed<T>` vs `Box<T>` (and the FastBox pair)
@@ -391,7 +391,7 @@ function rename(u: Box<{ name: string }>, name: string) {
 rename(user, 'Grace');
 ```
 
-`FastBoxed<T>` is currently a plain alias for `FastBox<T>`, so the distinction there is cosmetic. Use `FastBoxed<T>` at factory return positions and `FastBox<T>` for parameters, matching the `Boxed`/`Box` convention. Either compiles to the same type today.
+`FastBoxed<T>` was a cosmetic alias for `FastBox<T>` (since `FastBox` does no proxy forwarding, there is no extra shape to project). It is **deprecated as of `0.2.2`** and will be removed in `0.3.0`. Use `FastBox<T>` at both factory return and parameter positions. The `fastbox(...)` factory and `FastBoxedMap` / `FastBoxedSet` types now resolve to `FastBox<T>` directly.
 
 ## Patterns and pitfalls
 

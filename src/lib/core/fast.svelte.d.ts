@@ -1,28 +1,13 @@
 import { BaseBox } from './base.svelte.js';
 
 /**
- * The public type returned by the {@link fastbox} factory. Currently a plain
- * alias for `FastBox<T>` since `FastBox` performs no transparent property
- * forwarding. Kept as a named alias so users can write
- * `function foo(b: FastBoxed<number>)` mirroring the {@link Boxed} convention,
- * and so the factory return type stays decoupled from the class.
- *
- * ### `FastBoxed<T>` vs `FastBox<T>`
- *
- * Unlike `Boxed<T>` vs `Box<T>`, this distinction is currently cosmetic:
- * `FastBoxed<T> = FastBox<T>` with no extra shape. Pick whichever reads
- * better:
- *
- * - **`FastBoxed<T>`** for symmetry with `Boxed<T>` at factory boundaries
- *   and in public APIs, so the type names line up if you later switch a
- *   given call site from `FastBox` to `Box` (note: the runtime behavior
- *   changes too. Proxy, callability, and `instanceof` propagation come
- *   with `Box`).
- * - **`FastBox<T>`** for parameter types, matching how you would write
- *   `Box<T>` for the same role.
- *
- * They are assignment-compatible in both directions, so a refactor between
- * the two has no runtime or type effect today.
+ * @deprecated Since 0.2.2. Use {@link FastBox} directly. `FastBoxed<T>` was
+ * a cosmetic alias for `FastBox<T>` introduced for symmetry with the
+ * {@link Boxed} / {@link Box} pair, but `FastBox` performs no proxy
+ * forwarding so there is no extra shape to project. The alias is kept for
+ * backward compatibility and will be removed in 0.3.0. Migration:
+ * replace every `FastBoxed<T>` with `FastBox<T>`. The two are
+ * assignment-compatible, so the swap has no runtime or type effect.
  */
 export type FastBoxed<T> = FastBox<T>;
 
@@ -71,10 +56,9 @@ export type FastBoxed<T> = FastBox<T>;
 export declare class FastBox<T> extends BaseBox<T> {}
 
 /**
- * Factory equivalent to `new FastBox(value)`. Returns a {@link FastBoxed}
- * (currently a plain `FastBox<T>` alias, no transparent forwarding).
- * Preferred over `new FastBox(...)` so call sites read the same as the
- * `box(...)`, `boxedMap(...)`, `boxedSet(...)`, `fastBoxedMap(...)`, and
+ * Factory equivalent to `new FastBox(value)`. Preferred over
+ * `new FastBox(...)` so call sites read the same as the `box(...)`,
+ * `boxedMap(...)`, `boxedSet(...)`, `fastBoxedMap(...)`, and
  * `fastBoxedSet(...)` factories.
  *
  * @example
@@ -85,4 +69,4 @@ export declare class FastBox<T> extends BaseBox<T> {}
  * flag.value = true;
  * ```
  */
-export declare function fastbox<T>(initial: T): FastBoxed<T>;
+export declare function fastbox<T>(initial: T): FastBox<T>;

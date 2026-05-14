@@ -1,6 +1,6 @@
 import type { SvelteSet } from 'svelte/reactivity';
 import type { Boxed } from '../core/proxy.svelte.js';
-import type { FastBoxed } from '../core/fast.svelte.js';
+import type { FastBox } from '../core/fast.svelte.js';
 
 /**
  * A Box wrapping a `SvelteSet`. The set stays reactive on every `add`,
@@ -10,17 +10,17 @@ import type { FastBoxed } from '../core/fast.svelte.js';
 export type BoxedSet<T> = Boxed<SvelteSet<T>>;
 
 /**
- * A {@link FastBoxed} `SvelteSet`. Reactive on every `add`, `delete`, and
- * `clear`. No Proxy. Reach set methods through `.value`: write
- * `s.value.add(t)`, `s.value.has(t)`, etc. The Box reference can be
- * replaced with `s.value = new SvelteSet(...)`.
+ * A {@link FastBox} around a `SvelteSet`. Reactive on every `add`,
+ * `delete`, and `clear`. No Proxy. Reach set methods through `.value`:
+ * write `s.value.add(t)`, `s.value.has(t)`, etc. The Box reference can
+ * be replaced with `s.value = new SvelteSet(...)`.
  *
  * `FastBox` does not forward, so any inner-method names that collide
  * with `BaseBox` helpers stay destructive. `FastBoxedSet` is safer than
  * `FastBoxedMap` (Set has no `set` or `get`), but the same rule applies:
  * always go through `.value` for set methods.
  */
-export type FastBoxedSet<T> = FastBoxed<SvelteSet<T>>;
+export type FastBoxedSet<T> = FastBox<SvelteSet<T>>;
 
 /**
  * Create a {@link BoxedSet}, a Box around a fresh `SvelteSet`. Mutations to
@@ -31,8 +31,8 @@ export type FastBoxedSet<T> = FastBoxed<SvelteSet<T>>;
 export declare function boxedSet<T>(values?: Iterable<T> | null): BoxedSet<T>;
 
 /**
- * Create a {@link FastBoxedSet}, a {@link FastBoxed} `SvelteSet`. Same
- * trade-off as `fastBoxedMap`: no Proxy, so set methods are reached
+ * Create a {@link FastBoxedSet}, a {@link FastBox} around a `SvelteSet`.
+ * Same trade-off as `fastBoxedMap`: no Proxy, so set methods are reached
  * through `.value`:
  *
  * ```ts

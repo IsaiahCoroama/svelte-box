@@ -84,7 +84,7 @@ When you rename or move a runtime file, **rename its `.d.ts` sibling at the same
 
 Runtime behavior is fully deduplicated through inheritance: add a helper method to `BaseBox` once and all three classes get it. The d.ts deduplicates too, via type-guard predicates that use polymorphic `this`: each guard returns `this is this & BoxCell<SomeType>` rather than `this is BaseBox<SomeType>`. That pattern preserves the calling subclass type while narrowing only the value field, so a `Box<unknown>` narrows to `Box<unknown> & BoxCell<string>` rather than dropping to `BaseBox<string>`.
 
-The transparent-forwarding shape (`Boxed<T> = Box<T> & ForwardShape<T>`) lives in [core/proxy.svelte.d.ts](src/lib/core/proxy.svelte.d.ts) only. `FastBoxed<T>` is a plain alias for `FastBox<T>` because `FastBox` does no runtime forwarding. Do not introduce a higher-kinded helper for these aliases, TypeScript does not support HKT and the older `BaseBoxed<T, B>` definition with `B<T>` will not type-check.
+The transparent-forwarding shape (`Boxed<T> = Box<T> & ForwardShape<T>`) lives in [core/proxy.svelte.d.ts](src/lib/core/proxy.svelte.d.ts) only. `FastBoxed<T>` was a deprecated alias for `FastBox<T>` (no runtime forwarding so no extra shape to project); use `FastBox<T>` directly. Do not introduce a higher-kinded helper for these aliases, TypeScript does not support HKT and the older `BaseBoxed<T, B>` definition with `B<T>` will not type-check.
 
 ### How the Box proxy works
 
@@ -106,7 +106,7 @@ The `Box` constructor returns a `new Proxy(...)` so `new Box(x)` gives the user 
 
 - `del()` is typed `del(this: undefined extends T ? this : never): void`. `Box<number>.del()` is a TypeScript error. `Box<unknown>.del()` and `Box<any>.del()` work because both include `undefined`. The polymorphic `this` constraint applies to `FastBox` and any subclass too.
 - `Boxed<T>` is `Box<T> & ForwardShape<T>` where `ForwardShape<T>` resolves to a callable signature for function `T`, the object surface for object `T`, and `unknown` for primitives. Object and array properties forward; primitives keep only the `Box<T>` surface (the type narrows for safety, runtime forwarding still works).
-- `FastBoxed<T>` is a plain alias for `FastBox<T>`. There is no transparent forwarding shape because `FastBox` does no proxy-driven forwarding at runtime.
+- `FastBoxed<T>` is a `@deprecated` alias for `FastBox<T>` (slated for removal in `0.3.0`). There is no transparent forwarding shape because `FastBox` does no proxy-driven forwarding at runtime. Use `FastBox<T>` for new code; the `fastbox(...)` factory and `FastBoxedMap` / `FastBoxedSet` types resolve to `FastBox<T>` directly as of `0.2.2`.
 - Type guards return `this is this & BoxCell<X>`. This narrows from `Box<unknown>` and from union types correctly while preserving the calling subclass type.
 
 ### Test infrastructure
@@ -145,7 +145,7 @@ Publish flow: a GitHub Release event triggers `.github/workflows/publish.yml`. T
 3. Runs `npm audit signatures` to verify every tarball in the resolved dependency graph carries a valid Sigstore signature from npm.
 4. Verifies the release tag matches `package.json` version (`v` prefix stripped).
 5. Runs `prepack` (`svelte-package + publint`).
-6. Generates a CycloneDX SBOM (`sbom.cdx.json`) via `@cyclonedx/cyclonedx-npm`, with `continue-on-error: true` so a generator failure cannot break publish.
+6. Generates a CycloneDX SBOM (`sbom.cdx.json`) via `@cyclonedx/cdxgen -t bun` (reads `bun.lock` directly), with `continue-on-error: true` so a generator failure cannot break publish.
 7. Publishes to npm via Trusted Publisher OIDC with provenance attestations. SemVer pre-releases (any version with a hyphen, e.g. `0.2.0-rc.0`) ship under the `next` dist-tag; final releases ship under `latest`.
 8. Attaches the SBOM to the GitHub Release as a downloadable asset, only if step 6 produced a file.
 
@@ -159,7 +159,7 @@ The workflow uses `id-token: write` (for OIDC) and `contents: write` (for the SB
 - Reactivity tests wrap setup in `$effect.root` via the `withRoot` helper, then call `flushSync()` between mutations and assertions. The pattern is shown in the Architecture section under "Test infrastructure".
 - When mutating reactive state across `flushSync()`, mutate first, then flush, then assert. Out-of-order calls hide bugs.
 - Fixtures (small classes or values used as test inputs) go inline in the test file when they are short. Reactive classes that hold `$state` fields should be declared at module scope, not inside `it()` callbacks: nested declarations trip Svelte's `perf_avoid_nested_class` warning.
-- The current suite is 85 tests across four files. Adding a test should not push that past ~3 seconds locally on Chromium; if it does, ask whether the test is exercising the lib or the framework.
+- The current suite is 91 tests across four files. Adding a test should not push that past ~3 seconds locally on Chromium; if it does, ask whether the test is exercising the lib or the framework.
 
 ## Documentation rules
 
