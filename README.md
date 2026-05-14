@@ -764,7 +764,26 @@ The two places Box is meaningfully slower:
 
 If your app is a typical UI (forms, lists with hundreds of items, interactive views), the difference does not register. If it does animation, large-list virtualization, or high-frequency simulation, profile and hoist on the hot path.
 
-Run `npm run bench` to reproduce. Source: [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts).
+### Const views and LazyBox
+
+The const variants and `LazyBox` get their own bench files. Headline numbers (same hardware as the tables above):
+
+| Operation                                        | Result                                                            |
+| ------------------------------------------------ | ----------------------------------------------------------------- |
+| `new ConstFastBox(value)` capture vs `new Box`   | ~1.5x **faster** (no proxy)                                       |
+| `new ConstFastBox(otherBox)` borrow vs ConstBox  | ~2x faster (no proxy on the borrowed handle either)               |
+| `.value` read on a borrowed const view           | match with reading the source directly                            |
+| `box.const()` vs `fastbox.const()`               | `fastbox.const()` ~1.5x faster (returns the no-proxy variant)     |
+| `LazyBox.prefetch()` warm hit                    | match with a hand-rolled cached-promise pattern                   |
+| `LazyBox.value` read on a cached promise         | match with raw `$state` read speed                                |
+
+What this buys you: handing a child a read-only handle through `new ConstBox(source)` or `new ConstFastBox(source)` does not slow the child's reads. Pick `ConstFastBox` when the child only ever reads through `.value`; pick `ConstBox` when transparent forwarding matters.
+
+### Realistic patterns
+
+[benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) ships a `realistic patterns` section modeling what real apps do between renders: form-input echo per keystroke, a 1000-step cross-boundary counter loop, render fan-out (50 reads + 1 write per "frame"), an `isBox` API-boundary check, and constructing a list of 100 reactive items. The numbers match the tables above: FastBox tracks the baseline within noise; Box is ~5 to 20% slower on per-render hot paths and ~3 to 7x slower on construction-dominated loops.
+
+Run `npm run bench` to reproduce. Sources: [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts), [benchmarking/const.svelte.bench.ts](benchmarking/const.svelte.bench.ts), [benchmarking/lazy.svelte.bench.ts](benchmarking/lazy.svelte.bench.ts), [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts), [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts).
 
 ## SSR and hydration
 
@@ -869,7 +888,7 @@ The repository ships:
     - Proxy semantics: `Object.freeze` rejection, `Object.setPrototypeOf` rejection, `Object.defineProperty` routing, `delete` of own keys, stable method identity for forwarded methods, the `apply`-trap `this` contract, and primitive non-forwarding.
     - `BoxedMap` / `BoxedSet` (proxy variants) plus `FastBoxedMap` / `FastBoxedSet` (no-proxy variants) for mutations, replacement, iteration, and reactivity.
     - `$derived` integration and bound-method closure preservation.
-- A benchmark suite split across [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) (Box and FastBox core), [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts), and [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts). Comparison baselines (raw `$state`, class with `$state` field, class accessor pair, `$state({ value })` wrapper, direct `SvelteMap`/`SvelteSet`) cover construction, reads, writes, forwarded property access, method calls, type guards, snapshot, eager, JSON.stringify, BoxedMap/Set operations, cross-boundary mutation, and bulk stress paths.
+- A benchmark suite split across [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) (Box and FastBox core plus realistic patterns), [benchmarking/const.svelte.bench.ts](benchmarking/const.svelte.bench.ts) (ConstBox and ConstFastBox, capture and borrow), [benchmarking/lazy.svelte.bench.ts](benchmarking/lazy.svelte.bench.ts) (LazyBox prefetch cache), [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts), and [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts). Comparison baselines (raw `$state`, class with `$state` field, class accessor pair, `$state({ value })` wrapper, direct `SvelteMap`/`SvelteSet`, hand-rolled cached-promise) cover construction, reads, writes, forwarded property access, method calls, type guards, snapshot, eager, JSON.stringify, BoxedMap/Set operations, cross-boundary mutation, bulk stress paths, and the const/lazy variants.
 - A GitHub Actions CI pipeline that runs lint, type-check, build, and the test suite on every push to `master` and on every pull request. Tests run on Linux, macOS, and Windows via a matrix; a single `ci-all-greens` aggregator job is the required check for branch protection and reports success even when the pipeline is skipped because only docs changed.
 - A post-merge benchmark workflow that runs after pull requests touching `src/lib`, `benchmarking/`, or the workflow itself merge into `master`. Uploads results as artifacts and posts a summary comment on the merged PR for regression review.
 - A separate publish workflow that re-runs the full test suite, verifies the release tag is an ancestor of `master`, validates every transitive tarball's Sigstore signature (`npm audit signatures`), generates a CycloneDX SBOM, and publishes to npm via [Trusted Publisher (OIDC)](https://docs.npmjs.com/trusted-publishers) with provenance attestations. The SBOM is attached to each GitHub Release as a downloadable asset. No long-lived npm token is stored; publishes are gated behind a GitHub Environment with required approval, and the `v*` tag-protection ruleset blocks tag creation/deletion/force-push to non-admins.
