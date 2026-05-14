@@ -101,7 +101,6 @@ Common rejection reasons:
 
 - PRs that ship without a test.
 - PRs that bundle "while I was in there" changes unrelated to the stated goal.
-- New abstractions justified by hypothetical future requirements. The codebase currently has three classes (`BaseBox`, `Box`, `FastBox`), six factories, and a proxy layer. Adding a seventh thing needs a real argument.
 - Style-only refactors (renaming files, reformatting, swapping idioms) without a concrete reason.
 - Adding dependencies. The runtime has zero dependencies beyond the `svelte` peer. Any first runtime dep requires a real argument and a public surface impact analysis.
 - PRs that re-introduce features intentionally cut. Forwarding for primitives, deep observability hooks, and a stores-style subscribe API have all been considered and declined. Open an issue if you think the trade-off should be re-litigated.
