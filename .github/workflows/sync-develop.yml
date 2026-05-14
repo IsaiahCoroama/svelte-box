@@ -30,6 +30,17 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push master to develop
+        # `git cherry` filters out develop commits whose patch-id is on
+        # master (rebase-merge originals). Anything left is real new work.
         run: |
-          git fetch origin master:master
-          git push --force-with-lease origin master:develop
+          git fetch origin develop:refs/remotes/origin/develop
+          UNIQUE=$(git cherry HEAD refs/remotes/origin/develop | grep '^+' || true)
+          if [[ -n "$UNIQUE" ]]; then
+            echo "::warning::develop has unique commits not on master:"
+            echo "$UNIQUE"
+            echo "Refusing to overwrite. Rebase develop onto master manually."
+            exit 0
+          fi
+          git push \
+            --force-with-lease=refs/heads/develop:refs/remotes/origin/develop \
+            origin HEAD:refs/heads/develop
