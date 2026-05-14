@@ -89,14 +89,10 @@ jobs:
 
       - name: Generate SBOM (CycloneDX)
         id: sbom
-        # `npx` not `bunx`: the tool's `npm --version` >=9 check rejects
-        # bun's intercepted version. `--ignore-npm-errors` because npm's
-        # internal `npm ls --json` flags bun-resolved peer deps as invalid.
-        run: |
-          npx --yes @cyclonedx/cyclonedx-npm \
-            --ignore-npm-errors \
-            --output-file sbom.cdx.json \
-            --output-format JSON
+        # `cdxgen` parses `bun.lock` directly. The previous tool
+        # (`@cyclonedx/cyclonedx-npm`) ran `npm ls` against bun-installed
+        # node_modules and produced ELSPROBLEMS noise on every run.
+        run: npx --yes @cyclonedx/cdxgen@12 -o sbom.cdx.json -t bun .
         continue-on-error: true
 
       - name: Publish to npm
