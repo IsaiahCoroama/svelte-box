@@ -1,10 +1,8 @@
 /**
  * Union of every primitive value type. Matches the values for which
- * `box.isPrimitive()` returns `true` and which `BaseBox.isPrimitive()`
- * narrows the boxed value to.
- *
- * Functions and non-null objects are excluded. `null` and `undefined` are
- * included because ECMAScript classes both as primitive values.
+ * `box.isPrimitive()` returns `true` and the type `BaseBox.isPrimitive()`
+ * narrows to. Functions and non-null objects are excluded; `null` and
+ * `undefined` are included since ECMAScript classifies both as primitives.
  */
 export type PrimitiveType = string | number | bigint | boolean | symbol | null | undefined;
 
