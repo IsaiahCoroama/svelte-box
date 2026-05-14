@@ -768,14 +768,14 @@ If your app is a typical UI (forms, lists with hundreds of items, interactive vi
 
 The const variants and `LazyBox` get their own bench files. Headline numbers (same hardware as the tables above):
 
-| Operation                                        | Result                                                            |
-| ------------------------------------------------ | ----------------------------------------------------------------- |
-| `new ConstFastBox(value)` capture vs `new Box`   | ~1.5x **faster** (no proxy)                                       |
-| `new ConstFastBox(otherBox)` borrow vs ConstBox  | ~2x faster (no proxy on the borrowed handle either)               |
-| `.value` read on a borrowed const view           | match with reading the source directly                            |
-| `box.const()` vs `fastbox.const()`               | `fastbox.const()` ~1.5x faster (returns the no-proxy variant)     |
-| `LazyBox.prefetch()` warm hit                    | match with a hand-rolled cached-promise pattern                   |
-| `LazyBox.value` read on a cached promise         | match with raw `$state` read speed                                |
+| Operation                                       | Result                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `new ConstFastBox(value)` capture vs `new Box`  | ~1.5x **faster** (no proxy)                                   |
+| `new ConstFastBox(otherBox)` borrow vs ConstBox | ~2x faster (no proxy on the borrowed handle either)           |
+| `.value` read on a borrowed const view          | match with reading the source directly                        |
+| `box.const()` vs `fastbox.const()`              | `fastbox.const()` ~1.5x faster (returns the no-proxy variant) |
+| `LazyBox.prefetch()` warm hit                   | match with a hand-rolled cached-promise pattern               |
+| `LazyBox.value` read on a cached promise        | match with raw `$state` read speed                            |
 
 What this buys you: handing a child a read-only handle through `new ConstBox(source)` or `new ConstFastBox(source)` does not slow the child's reads. Pick `ConstFastBox` when the child only ever reads through `.value`; pick `ConstBox` when transparent forwarding matters.
 
