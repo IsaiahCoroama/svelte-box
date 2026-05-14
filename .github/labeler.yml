@@ -27,14 +27,27 @@ internal:
           - '!tests/**'
           - '!benchmarking/**'
 
-# `feature`, `bug`, `refactor`, `breaking`, and `security` are intent /
-# judgment labels that file paths cannot tell apart. A change touching
-# `src/lib/**` could be any of the first three. These are applied by
-# the author or a maintainer on the PR; the label-checker workflow only
-# requires that at least one classification label is present.
-
-upgrade:
+github_actions:
   - changed-files:
       - any-glob-to-any-file:
-          - package.json
-          - bun.lock
+          - '.github/**/*.{yml,yaml}'
+
+typescript:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.ts'
+
+javascript:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.js'
+
+svelte:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.svelte'
+
+bun:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'bun.lock'

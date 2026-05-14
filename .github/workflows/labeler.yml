@@ -46,10 +46,11 @@ jobs:
         with:
           # `any_of` requires at least one of the listed labels. We use this
           # instead of `one_of` (exactly one) because most PRs are multi-
-          # aspect — e.g. a security fix that also bumps a dep is both
-          # `security` and `upgrade`. Intent labels (`feature`, `bug`,
+          # aspect: a security fix that also lands a refactor is
+          # both `security` and `refactor`. Intent labels (`feature`, `bug`,
           # `refactor`) and judgment labels (`security`, `breaking`) are
-          # author/maintainer-applied; `docs`, `internal`, and `upgrade` are
-          # auto-applied by the labeler step above based on file paths.
-          any_of: breaking,security,feature,bug,refactor,upgrade,docs,internal
+          # author/maintainer-applied. `docs` and `internal` are auto-applied
+          # by the labeler step above. `deps` is applied by Dependabot from
+          # `.github/dependabot.yml`.
+          any_of: breaking,security,feature,bug,refactor,docs,internal,deps
           repo_token: ${{ secrets.GITHUB_TOKEN }}
