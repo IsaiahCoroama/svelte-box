@@ -39,6 +39,7 @@ updates:
       day: monday
       time: '06:00'
       timezone: UTC
+    target-branch: 'develop'
     labels:
       - deps
       - github_actions
