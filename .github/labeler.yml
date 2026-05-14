@@ -26,6 +26,34 @@ internal:
           - '!src/**'
           - '!tests/**'
           - '!benchmarking/**'
+  - head-branch:
+      - '^bench/'
+      - '^chore/'
+
+feature:
+  - head-branch:
+      - '^feat/'
+
+refactor:
+  - head-branch:
+      - '^refactor/'
+
+bug:
+  - head-branch:
+      - '^fix/'
+
+security:
+  - head-branch:
+      - '^security/'
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'SECURITY.md'
+
+deps:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'bun.lock'
 
 github_actions:
   - changed-files:
