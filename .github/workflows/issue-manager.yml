@@ -1,14 +1,11 @@
 name: Issue Manager
 
-# SECURITY (pull_request_target + issues + issue_comment): this workflow
-# only manages issue and PR state (labels, comments, close actions) via
-# the GitHub API. It does NOT check out repository code, does NOT run
-# arbitrary scripts, and does NOT consume PR-controlled inputs in `run:`
-# blocks. Do not add such steps without rewriting the triggers.
+# SECURITY (pull_request_target + issues + issue_comment): manages
+# issue/PR state via the GitHub API only. Must NOT check out code, run
+# scripts, or consume PR-controlled inputs in `run:` blocks.
 #
-# Security-tagged reports must never be moved to the `answered` label
-# without an explicit fix landing first: `answered` triggers a 10-day
-# auto-close window, which is aggressive for a security disclosure.
+# POLICY: never apply `answered` to a security-tagged report without a
+# landed fix. The label triggers a 10-day auto-close.
 
 on:
   schedule:
@@ -24,8 +21,6 @@ on:
       - labeled
   workflow_dispatch:
 
-# Per-item concurrency so rapid comment/label events on the same issue or PR
-# do not race. The cron sweep takes a singleton group.
 concurrency:
   group: issue-manager-${{ github.event.issue.number || github.event.pull_request.number || 'cron' }}
   cancel-in-progress: true

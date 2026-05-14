@@ -1,14 +1,8 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Deploy GitHub Pages
 
-# Gate the deploy on CI passing. The CI workflow runs lint, type-check, and
-# the test suite on every push and pull request. We only deploy a new
-# Pages build when CI on `master` finished successfully, so a direct push
-# or admin override that breaks `master` cannot ship a broken site.
-#
-# `workflow_dispatch` stays available for manual redeploys (e.g. after a
-# repo rename, a Pages settings change, or to roll back to the latest
-# good commit by re-running the workflow).
+# Deploy gated on CI success on master so a broken push cannot ship.
+# `workflow_dispatch` stays for manual redeploys (rollback, settings).
 on:
   workflow_run:
     workflows: [CI]
@@ -21,8 +15,7 @@ permissions:
   pages: write
   id-token: write
 
-# Only one Pages deploy at a time. Newer pushes wait for the in-flight one,
-# they do not cancel it (a half-deployed site is worse than a delayed one).
+# `cancel-in-progress: false` so a half-deployed site is never published.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -31,9 +24,8 @@ jobs:
   changes:
     name: Detect deployable changes
     runs-on: ubuntu-latest
-    # Skip everything when the upstream CI run did not succeed. For
-    # `workflow_dispatch` invocations the `workflow_run` context is empty
-    # and the conclusion check passes through.
+    # workflow_dispatch context has no workflow_run.conclusion; the OR
+    # passes it through.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       deploy: ${{ steps.detect.outputs.deploy }}
@@ -41,22 +33,18 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
-          # Need HEAD~1 reachable so we can diff the merge commit against
-          # the previous master state.
+          # HEAD~1 reachable for diff against previous master commit
           fetch-depth: 2
 
       - name: Compare head against previous master commit
         id: detect
         run: |
-          # Manual redeploy always proceeds (rollback, settings change,
-          # etc.). Skip the diff check entirely in that case.
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "Manual dispatch -> deploy"
             echo "deploy=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Defensive: if history is too shallow (orphan branch, force
-          # push, first commit), deploy rather than skip.
+          # Defensive on shallow history (orphan branch, force push, first commit)
           if ! git rev-parse HEAD~1 >/dev/null 2>&1; then
             echo "No previous commit reachable, deploying defensively"
             echo "deploy=true" >> "$GITHUB_OUTPUT"
@@ -85,10 +73,8 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          # `workflow_run` checks out the workflow's default branch by
-          # default, not the commit that triggered CI. Pin the ref to the
-          # head SHA from the upstream CI run so we deploy exactly what
-          # was tested.
+          # workflow_run defaults to workflow's default branch; pin to
+          # the CI head SHA so we deploy what was tested
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -97,8 +83,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      # Defensive: make sure SvelteKit's generated types are present even
-      # if the `prepare` script is later removed from `package.json`.
+      # Defensive in case `prepare` is removed from package.json
       - run: bunx svelte-kit sync
 
       - name: Configure Pages
@@ -107,10 +92,7 @@ jobs:
 
       - name: Build static site
         env:
-          # `actions/configure-pages` resolves the project's GitHub Pages
-          # base path (e.g. `/svelte-box`) and exposes it as the `base_path`
-          # output. Forwarded into the Vite build via `BASE_PATH`, which
-          # `svelte.config.js` reads to set `kit.paths.base`.
+          # svelte.config.js reads BASE_PATH to set kit.paths.base
           BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: bun run build:app
 

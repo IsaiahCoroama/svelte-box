@@ -4,8 +4,8 @@ on:
   release:
     types: [published]
 
-# Two simultaneous Releases must not race on `npm publish`. `cancel-in-progress`
-# stays false so an in-flight publish completes before the next one starts.
+# `cancel-in-progress: false` so an in-flight publish completes before
+# the next starts. Two parallel `npm publish` calls would race.
 concurrency:
   group: npm-publish
   cancel-in-progress: false
@@ -21,20 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          # Fetch enough history to verify the release tag is an ancestor of
-          # master. fetch-depth: 0 = full history.
+          # full history needed for tag-ancestry check below
           fetch-depth: 0
 
       - name: Verify release tag is on master
-        # Tag protection on `v*` already prevents non-admin pushes from
-        # forging a tag, but verify in CI as a defense in depth. Reject any
-        # tag whose commit is not reachable from origin/master.
-        #
-        # The explicit `git fetch` is defensive: actions/checkout at
-        # fetch-depth: 0 against a tag ref usually leaves origin/master
-        # populated, but the exact behavior depends on the trigger ref
-        # initialization. Fetching master here guarantees the ancestry
-        # check has the ref it needs regardless of checkout state.
+        # Defense in depth alongside the `v*` tag-protection ruleset.
+        # Explicit `git fetch` because actions/checkout under a tag trigger
+        # may not populate origin/master.
         run: |
           git fetch --no-tags --depth=1 origin master
           if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/master; then
@@ -72,17 +65,8 @@ jobs:
       - run: bun run check
       - run: bun run test
 
-      # Verify every tarball in the resolved dependency graph carries a
-      # valid Sigstore signature from the npm registry. Catches tampered
-      # tarballs in the local install graph before the package is built
-      # from them. Requires the npm CLI (already on the runner via
-      # actions/setup-node above).
-      #
-      # `npm audit signatures` reads from a `package-lock.json` (npm
-      # format). Bun does not write `package-lock.json`, so we generate
-      # one transiently from `package.json` first. `--package-lock-only`
-      # skips installing (node_modules already exists from `bun install`
-      # above) and `--no-audit` skips the audit-side-effect pass.
+      # `npm audit signatures` requires npm-format package-lock.json;
+      # bun does not write one. Generate transiently without installing.
       - name: Generate transient package-lock.json for signature audit
         run: npm install --package-lock-only --no-audit --no-fund
 
@@ -102,16 +86,9 @@ jobs:
 
       - name: Generate SBOM (CycloneDX)
         id: sbom
-        # Run through `npx`, not `bunx`. The CycloneDX tool shells out to
-        # `npm --version` for a >=9 compat check. Under `bunx`, bun's runtime
-        # intercepts and returns its own version (1.3.13), which the tool
-        # rejects. `npx` keeps node's real npm (11.x via setup-node) in scope.
-        #
-        # `--ignore-npm-errors` is required because the install graph was
-        # produced by `bun install`. npm's `npm ls --json` (which CycloneDX
-        # invokes internally) flags bun-resolved peer deps as extraneous or
-        # invalid even when the graph is healthy. The flag lets the SBOM
-        # generation proceed despite those warnings.
+        # `npx` not `bunx`: the tool's `npm --version` >=9 check rejects
+        # bun's intercepted version. `--ignore-npm-errors` because npm's
+        # internal `npm ls --json` flags bun-resolved peer deps as invalid.
         run: |
           npx --yes @cyclonedx/cyclonedx-npm \
             --ignore-npm-errors \
@@ -120,10 +97,8 @@ jobs:
         continue-on-error: true
 
       - name: Publish to npm
-        # SemVer pre-releases (any version containing a hyphen, e.g.
-        # 0.2.0-rc.0) ship under the `next` dist-tag so they do not become
-        # the default for `npm install @coroama/svelte-box`. Final releases
-        # keep going to `latest` as usual.
+        # Pre-releases (hyphen in version, e.g. 0.2.0-rc.0) ship to
+        # `next` dist-tag. Finals ship to `latest`.
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           if [[ "$PKG_VERSION" == *-* ]]; then
@@ -135,9 +110,7 @@ jobs:
           fi
 
       - name: Attach SBOM to the GitHub Release
-        # Only runs if the SBOM step above produced a file. The earlier step
-        # has `continue-on-error: true`, so a missing sbom.cdx.json is not
-        # fatal here either; the publish itself already succeeded.
+        # Skipped silently if SBOM step failed (continue-on-error)
         if: hashFiles('sbom.cdx.json') != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
