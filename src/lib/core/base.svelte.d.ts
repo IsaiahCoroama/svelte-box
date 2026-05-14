@@ -1,15 +1,24 @@
 import type { Snapshot } from 'svelte';
-import type { BoxCell, PrimitiveType } from './utils.js';
+import type { BoxAccessor, BoxGuards, BoxSerializable, MutCoreBox } from './core.svelte.js';
+
+type _Mixins<T> = MutCoreBox<T> & BoxGuards & BoxAccessor<T> & BoxSerializable<T>;
+declare const _Mixins: new <T>(initial: T) => _Mixins<T>;
 
 /**
- * Shared base class for {@link Box} and `FastBox`. Holds the reactive
- * `value` field plus every helper method and type guard. Both `Box` (the
- * Proxy variant) and `FastBox` (the plain variant) inherit from `BaseBox`,
- * so anything documented here applies to both.
+ * Shared base class for {@link Box} and `FastBox`. Composes the reactive
+ * `value` cell ({@link MutCoreBox}) with the accessor (`get`/`set`/`del`),
+ * type guards, and `toJSON` mixins. Both `Box` (the Proxy variant) and
+ * `FastBox` (the plain variant) inherit from `BaseBox`, so anything
+ * documented here applies to both.
+ *
+ * `const()` is **not** defined on `BaseBox` because the chosen const
+ * variant differs between the leaf classes (`Box` returns `ConstBox`,
+ * `FastBox` returns `ConstFastBox`). Subclasses define their own.
  *
  * Use `BaseBox<T>` as a parameter type when you want to accept either
  * subclass without committing to one. Subclassing `BaseBox` directly is
- * supported and produces something equivalent to `FastBox`.
+ * supported and produces something equivalent to `FastBox` minus
+ * `const()`.
  *
  * Type guards use a polymorphic `this` predicate (`this is this & BoxCell<X>`)
  * so narrowing inside an `if (b.isString())` block keeps the original
@@ -17,30 +26,7 @@ import type { BoxCell, PrimitiveType } from './utils.js';
  * narrows to `Box<unknown> & BoxCell<string>` rather than dropping to
  * the base class.
  */
-export declare class BaseBox<T> {
-    /** The reactive value held by the box. Read and write through `box.value`. */
-    value: T;
-
-    /**
-     * Create a new reactive box.
-     * @param initial Initial value to store.
-     */
-    constructor(initial: T);
-
-    /** Convenience getter for `box.value`. Equivalent to reading `.value` directly. */
-    get(): T;
-
-    /** Convenience setter for `box.value`. Equivalent to `box.value = value`. */
-    set(value: T): void;
-
-    /**
-     * Reset the boxed value to `undefined`. Only callable when `T` already
-     * includes `undefined`, so `BaseBox<number>.del()` is a type error. For
-     * boxes whose value type cannot be `undefined`, assign a real value
-     * through `box.value = ...` instead.
-     */
-    del(this: undefined extends T ? this : never): void;
-
+export declare class BaseBox<T> extends _Mixins<T> {
     /**
      * Return a non-reactive deep clone of the current value. Equivalent to
      * `$state.snapshot(box.value)`. Use this for serialization, logging, or
@@ -54,43 +40,4 @@ export declare class BaseBox<T> {
      * the current value while another part of the UI is awaiting async work.
      */
     eager(): T;
-
-    /**
-     * Returns the inner value for `JSON.stringify`. `JSON.stringify(box)`
-     * works the same as `JSON.stringify(box.value)`. You generally do not
-     * need to call this directly.
-     */
-    toJSON(): T;
-
-    /** True when the boxed value is a `boolean`. Narrows the value to `boolean`. */
-    isBoolean(): this is this & BoxCell<boolean>;
-    /** True when the boxed value is a `number`. Narrows the value to `number`. */
-    isNumber(): this is this & BoxCell<number>;
-    /** True when the boxed value is a `string`. Narrows the value to `string`. */
-    isString(): this is this & BoxCell<string>;
-    /** True when the boxed value is a `bigint`. Narrows the value to `bigint`. */
-    isBigInt(): this is this & BoxCell<bigint>;
-    /** True when the boxed value is a `symbol`. Narrows the value to `symbol`. */
-    isSymbol(): this is this & BoxCell<symbol>;
-    /** True when the boxed value is `undefined`. Narrows the value to `undefined`. */
-    isUndefined(): this is this & BoxCell<undefined>;
-    /** True when the boxed value is `null`. Narrows the value to `null`. */
-    isNull(): this is this & BoxCell<null>;
-
-    /** True when the boxed value is `null` or `undefined`. */
-    isNullish(): this is this & BoxCell<null | undefined>;
-    /** True when the boxed value is any primitive type. Narrows to {@link PrimitiveType}. */
-    isPrimitive(): this is this & BoxCell<PrimitiveType>;
-
-    /** True when the boxed value is a non-null object. */
-    isObject(): this is this & BoxCell<object>;
-    /** True when the boxed value is an array. */
-    isArray(): this is this & BoxCell<unknown[]>;
-    /** True when the boxed value is a function. */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    isFunction(): this is this & BoxCell<(...args: any[]) => unknown>;
-    /** True when the boxed value is a `Map` (including `SvelteMap`). */
-    isMap(): this is this & BoxCell<Map<unknown, unknown>>;
-    /** True when the boxed value is a `Set` (including `SvelteSet`). */
-    isSet(): this is this & BoxCell<Set<unknown>>;
 }
