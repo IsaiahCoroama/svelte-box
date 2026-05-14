@@ -5,19 +5,17 @@ type _Mixins<T> = RawCoreBox<T> & BoxGetter<T> & BoxGuards & BoxSerializable<T>;
 declare const _Mixins: new <T>(initial: T) => _Mixins<T>;
 
 /**
- * Read-only reactive view of a value. Plain class, no Proxy. Reach
- * inner-object properties through `.value`. Writes through `.value`
- * throw `TypeError`.
+ * Read-only reactive view. Plain class, no Proxy. Reach inner-object
+ * properties through `.value`. Writes through `.value` throw
+ * `TypeError`.
  *
- * Read-only counterpart to `FastBox`. Inherits {@link BoxGuards},
- * {@link BoxGetter}, and {@link BoxSerializable} via the mixin chain
- * over {@link RawCoreBox}, so the inherited storage cell is
- * `$state.raw` and the project invariant "every box inherits from
- * `CoreBox` or `RawCoreBox`" holds.
+ * Read-only counterpart to `FastBox`. Mixin chain over
+ * {@link RawCoreBox} provides {@link BoxGuards}, {@link BoxGetter}, and
+ * {@link BoxSerializable}; storage is `$state.raw`.
  *
  * Construct from a plain value (captured into the inherited raw cell)
- * or from an existing {@link AnyBox} (shared state with the source).
- * Use `fastbox.const()` to derive a const view from a `FastBox`.
+ * or an existing {@link AnyBox} (shared state). Use `fastbox.const()`
+ * for a snapshot from a `FastBox`.
  */
 export declare class ConstFastBox<T> extends _Mixins<T> {
     /** Read-only reactive accessor for the underlying value. */
