@@ -26,12 +26,14 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   issue-manager:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
       - uses: tiangolo/issue-manager@2fb3484ec9279485df8659e8ec73de262431737d # v0.6.0
         with:

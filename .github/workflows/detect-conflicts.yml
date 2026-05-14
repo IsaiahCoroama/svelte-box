@@ -13,6 +13,9 @@ concurrency:
   group: detect-conflicts-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   main:
     permissions:
