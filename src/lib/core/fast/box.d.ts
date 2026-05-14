@@ -1,4 +1,5 @@
-import { BaseBox } from './base.svelte.js';
+import { BaseBox } from '../base.svelte.js';
+import type { ConstFastBox } from './const.svelte.js';
 
 /**
  * @deprecated Since 0.2.2. Use {@link FastBox} directly. `FastBoxed<T>` was
@@ -53,7 +54,15 @@ export type FastBoxed<T> = FastBox<T>;
  * }
  * ```
  */
-export declare class FastBox<T> extends BaseBox<T> {}
+export declare class FastBox<T> extends BaseBox<T> {
+    /**
+     * Derive a read-only plain {@link ConstFastBox} capturing the
+     * current value. Returns the no-proxy variant matching `FastBox`'s
+     * own no-proxy semantics; reach inner-object properties on the
+     * returned const view through `.value`.
+     */
+    const(): ConstFastBox<T>;
+}
 
 /**
  * Factory equivalent to `new FastBox(value)`. Preferred over
