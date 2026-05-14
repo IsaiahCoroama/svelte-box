@@ -8,19 +8,16 @@ import {
 const _Mixins = BoxGuardsMixin(BoxAccessorMixin(BoxSerializableMixin(MutCoreBox)));
 
 /**
- * Shared base class for `Box` and `FastBox`. Mixes accessor, guard, and
- * serializable behavior onto a reactive `MutCoreBox` cell.
+ * Shared base for `Box` and `FastBox`. Mixes accessor, guard, and
+ * serializable behavior onto a `MutCoreBox` cell.
  *
- * `BaseBox` itself is a usable container. Exported so consumers can type
- * a function that accepts either subclass with `BaseBox<T>` instead of
- * `Box<T> | FastBox<T>`. Subclassing `BaseBox` directly is supported and
- * gives you something equivalent to `FastBox` minus the `const()`
- * helper (defined on the leaf subclasses since the chosen const
- * variant differs between them).
+ * Exported so a function can accept either subclass via `BaseBox<T>`.
+ * Subclassing `BaseBox` directly is supported and yields something
+ * equivalent to `FastBox` minus `const()` (defined on leaf subclasses
+ * because the chosen const variant differs).
  *
  * Helpers live on mixin prototypes rather than per-instance arrow fields
- * so construction stays cheap. Reading detached methods (e.g.
- * `const g = box.get; g()`) loses `this`; call them on the box.
+ * to keep construction cheap.
  */
 export class BaseBox extends _Mixins {
     snapshot() {
