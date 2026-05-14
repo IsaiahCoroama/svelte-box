@@ -51,14 +51,17 @@ All library source lives under [src/lib/](src/lib/). The runtime split is one
 flat file per concern inside `core/`. Hand-written `.d.ts` siblings shadow the
 JS files at package-time, see "Why hand-written `.d.ts`" below.
 
-- [src/lib/core/utils.js](src/lib/core/utils.js) and [`.d.ts`](src/lib/core/utils.d.ts) : tiny shared helpers (`isFunction`, `isObjectLike`).
-- [src/lib/core/base.svelte.js](src/lib/core/base.svelte.js) and [`.d.ts`](src/lib/core/base.svelte.d.ts) : `BaseBox<T>` class. The reactive `value` field plus every helper method and type guard. Exported from the barrel.
+- [src/lib/core/utils.js](src/lib/core/utils.js) and [`.d.ts`](src/lib/core/utils.d.ts) : tiny shared helpers (`isFunction`, `isObjectLike`) plus the `BoxCell<T>`, `PrimitiveType`, and `UnknownFn` type aliases.
+- [src/lib/core/core.svelte.js](src/lib/core/core.svelte.js) and [`.d.ts`](src/lib/core/core.svelte.d.ts) : the minimal reactive cell `CoreBox<T>` plus the mixin functions (`BoxGuardsMixin`, `BoxAccessorMixin`, `BoxSerializableMixin`, and the constituent `BoxGetterMixin`/`BoxSetterMixin`/`BoxDeleterMixin`). All helper-method runtime lives here; the d.ts declares the per-mixin types (`BoxGuards`, `BoxAccessor`, `BoxSerializable`, `BoxGetter`, `BoxSetter`, `BoxDeleter`). Not part of the public barrel except for type names that `BoxCell` consumers may want.
+- [src/lib/core/base.svelte.js](src/lib/core/base.svelte.js) and [`.d.ts`](src/lib/core/base.svelte.d.ts) : `BaseBox<T>` class, the composed `BoxGuardsMixin(BoxAccessorMixin(BoxSerializableMixin(CoreBox)))` chain plus `snapshot`, `eager`, and `const`. Exported from the barrel.
 - [src/lib/core/fast.svelte.js](src/lib/core/fast.svelte.js) and [`.d.ts`](src/lib/core/fast.svelte.d.ts) : `FastBox<T>` (empty subclass of `BaseBox`, no proxy) and `fastbox()` factory.
 - [src/lib/core/proxy.svelte.js](src/lib/core/proxy.svelte.js) and [`.d.ts`](src/lib/core/proxy.svelte.d.ts) : `Box<T>` (proxy-backed subclass of `BaseBox`), `box()` factory, `Boxed<T>` type. All proxy machinery (`PROXY_TARGET`, `bindCache`, `bindForwarded`, `FORWARD_FIRST`) lives in this file.
+- [src/lib/core/const.svelte.js](src/lib/core/const.svelte.js) and [`.d.ts`](src/lib/core/const.svelte.d.ts) : `ConstBox<T>` read-only view, `constbox()` factory. Wraps either a plain value (captured into a fresh internal `CoreBox`) or an existing `CoreBox`/`BaseBox` (shared state). Inherits `BoxGuards`, `BoxGetter`, and `BoxSerializable`; writes through `.value` throw `TypeError`.
+- [src/lib/core/lazy.svelte.js](src/lib/core/lazy.svelte.js) and [`.d.ts`](src/lib/core/lazy.svelte.d.ts) : `LazyBox<T>` deferred-loader cell, `lazybox()` factory. Extends `CoreBox<Promise<T> | null>`; first `prefetch()` runs the loader and caches the promise, `reset()` clears it. Synchronous throws are converted to rejected promises.
 - [src/lib/collections/map.js](src/lib/collections/map.js) and [`.d.ts`](src/lib/collections/map.d.ts) : `boxedMap()` and `fastBoxedMap()` factories plus the `BoxedMap`/`FastBoxedMap` types. Imports `SvelteMap` from `svelte/reactivity`.
 - [src/lib/collections/set.js](src/lib/collections/set.js) and [`.d.ts`](src/lib/collections/set.d.ts) : `boxedSet()` and `fastBoxedSet()` factories plus the `BoxedSet`/`FastBoxedSet` types. Imports `SvelteSet` from `svelte/reactivity`.
-- [src/lib/index.js](src/lib/index.js) and [src/lib/index.d.ts](src/lib/index.d.ts) : barrel re-exports from each `core/*.svelte.{js,d.ts}` and `collections/{map,set}.{js,d.ts}` module.
-- [tests/box.svelte.test.ts](tests/box.svelte.test.ts), [tests/fastbox.svelte.test.ts](tests/fastbox.svelte.test.ts) : browser-mode vitest files covering Box and FastBox respectively.
+- [src/lib/index.js](src/lib/index.js) and [src/lib/index.d.ts](src/lib/index.d.ts) : barrel re-exports from each `core/*.svelte.{js,d.ts}` and `collections/{map,set}.{js,d.ts}` module. `CoreBox` and the mixin functions are intentionally not re-exported; they are internal scaffolding.
+- [tests/box.svelte.test.ts](tests/box.svelte.test.ts), [tests/fastbox.svelte.test.ts](tests/fastbox.svelte.test.ts), [tests/const.svelte.test.ts](tests/const.svelte.test.ts), [tests/lazy.svelte.test.ts](tests/lazy.svelte.test.ts) : browser-mode vitest files covering Box, FastBox, ConstBox, and LazyBox respectively.
 - [tests/collections/map.svelte.test.ts](tests/collections/map.svelte.test.ts) and [tests/collections/set.svelte.test.ts](tests/collections/set.svelte.test.ts) : `boxedMap`/`fastBoxedMap` and `boxedSet`/`fastBoxedSet` coverage. One file per collection type, mirroring the lib layout.
 - [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) : benchmark suite for Box and FastBox. Most describe-blocks are a three-way Baseline-vs-Box-vs-FastBox comparison. The two `type guards (...)` groups omit Baseline because the helpers are Box-specific; everything else (including forwarded-method groups) keeps a Baseline column.
 - [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts) and [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts) : collection bench groups (`Map.set`, `Map.get`, `Set.add`), split out to mirror the lib and test layout.
@@ -66,7 +69,9 @@ JS files at package-time, see "Why hand-written `.d.ts`" below.
 
 The split between `proxy.svelte.js` and the `collections/` directory is **intentional for tree-shaking**. Importing only `Box` does not pull in `SvelteMap`/`SvelteSet`. Splitting `collections/` further into `map.js` and `set.js` means importing only `boxedMap` does not pull in `SvelteSet`. Do not fold these back into a single module.
 
-The split between `base.svelte.js`, `fast.svelte.js`, and `proxy.svelte.js` is also intentional. `BaseBox` is the shared parent that holds runtime methods; `FastBox` and `Box` only differ in their constructors. Add new helpers to `base.svelte.js` so all three classes get them at once. Do not duplicate methods across the subclasses.
+The split between `base.svelte.js`, `fast.svelte.js`, and `proxy.svelte.js` is also intentional. `BaseBox` is the shared parent that holds the composed mixin chain; `FastBox` and `Box` only differ in their constructors. Helper methods live in `core.svelte.js` as mixins so new behavior can be added there once and picked up by every class in the chain. Do not duplicate methods across the subclasses.
+
+The mixin functions in `core.svelte.js` (`BoxGuardsMixin`, `BoxAccessorMixin`, `BoxSerializableMixin`, and the constituent `BoxGetterMixin`/`BoxSetterMixin`/`BoxDeleterMixin`) are the seam new helper categories should be added to. `ConstBox` reuses `BoxGetterMixin`, `BoxGuardsMixin`, and `BoxSerializableMixin` to expose the read-only side of the API without inheriting the mutating accessors. The d.ts side declares each mixin as a type-only `class` (`BoxGuards`, `BoxGetter`, etc.); these are never instantiated at runtime, only used as the `M` type argument to `BoxMixin<B, M>`.
 
 ### Why hand-written `.d.ts`
 
@@ -74,15 +79,35 @@ This project intentionally keeps type declarations in separate `.d.ts` files ins
 
 When you rename or move a runtime file, **rename its `.d.ts` sibling at the same time**. A missing or out-of-sync sibling silently falls back to JSDoc-generated types, which lose the polymorphic-this guards described below.
 
+### Project invariant: every box inherits from `CoreBox`
+
+Every reactive container in this library, and every user-defined
+container layered on top of it, **must** inherit from `CoreBox`. The
+`instanceof CoreBox` runtime check and the `AnyBox<T>` type alias in
+[src/lib/core/core.svelte.d.ts](src/lib/core/core.svelte.d.ts) are the
+only sanctioned ways to recognise a box generically; both depend on
+this invariant. Do not introduce a parallel container hierarchy. A new
+container variant either extends `CoreBox` directly (read-only),
+extends `MutCoreBox` (read-write), or extends an existing user-facing
+class (`BaseBox`, `Box`, `FastBox`, `ConstBox`, `LazyBox`) that
+already inherits from `CoreBox`.
+
 ### Class hierarchy
 
-`BaseBox<T>` (in [core/base.svelte.js](src/lib/core/base.svelte.js)) holds the `value = $state()` field plus every helper method and type guard. Both `FastBox` and `Box` extend `BaseBox`.
+`CoreBox<T>` (in [core/core.svelte.js](src/lib/core/core.svelte.js)) is the minimal reactive cell: one `value = $state()` field, one constructor. Not exported from the public barrel; everything user-facing extends it.
+
+`BaseBox<T>` (in [core/base.svelte.js](src/lib/core/base.svelte.js)) is `CoreBox` wrapped in three mixins applied at module scope:
+`BoxGuardsMixin(BoxAccessorMixin(BoxSerializableMixin(CoreBox)))`. The accessor mixin contributes `get`/`set`/`del`; the serializable mixin contributes `toJSON`; the guard mixin contributes the 14 type guards. `BaseBox` itself adds `snapshot`, `eager`, and `const`. Both `FastBox` and `Box` extend `BaseBox`.
 
 `FastBox` ([core/fast.svelte.js](src/lib/core/fast.svelte.js)) is an empty subclass. It exists so the choice between proxy-backed and plain is explicit at the type level. Functionally identical to `BaseBox`.
 
 `Box` ([core/proxy.svelte.js](src/lib/core/proxy.svelte.js)) overrides the constructor to return a `new Proxy(...)` that does transparent forwarding, callability for function values, `instanceof` propagation through subclasses, and the rest.
 
-Runtime behavior is fully deduplicated through inheritance: add a helper method to `BaseBox` once and all three classes get it. The d.ts deduplicates too, via type-guard predicates that use polymorphic `this`: each guard returns `this is this & BoxCell<SomeType>` rather than `this is BaseBox<SomeType>`. That pattern preserves the calling subclass type while narrowing only the value field, so a `Box<unknown>` narrows to `Box<unknown> & BoxCell<string>` rather than dropping to `BaseBox<string>`.
+`ConstBox` ([core/const.svelte.js](src/lib/core/const.svelte.js)) is a separate read-only branch. It wraps a `CoreBox` (either passed in directly, sharing state, or created fresh from a plain value) and composes only `BoxGetterMixin`, `BoxSerializableMixin`, and `BoxGuardsMixin`; the value setter throws. `Box`/`FastBox` expose `box.const()` to derive a snapshot-style const view from the current value.
+
+`LazyBox` ([core/lazy.svelte.js](src/lib/core/lazy.svelte.js)) extends `CoreBox<Promise<T> | null>` directly. It does not inherit the mixin chain because it deliberately exposes a narrower surface (no guards, no `toJSON`, no `del`). Its `prefetch()` and `reset()` are the only API.
+
+Runtime behavior is fully deduplicated through the mixin chain: add a guard to `BoxGuardsMixin` once and `BaseBox`, `Box`, `FastBox`, and `ConstBox` all pick it up. The d.ts deduplicates too, via type-guard predicates that use polymorphic `this`: each guard returns `this is this & BoxCell<SomeType>` rather than `this is BaseBox<SomeType>`. That pattern preserves the calling subclass type while narrowing only the value field, so a `Box<unknown>` narrows to `Box<unknown> & BoxCell<string>` rather than dropping to `BaseBox<string>`.
 
 The transparent-forwarding shape (`Boxed<T> = Box<T> & ForwardShape<T>`) lives in [core/proxy.svelte.d.ts](src/lib/core/proxy.svelte.d.ts) only. `FastBoxed<T>` was a deprecated alias for `FastBox<T>` (no runtime forwarding so no extra shape to project); use `FastBox<T>` directly. Do not introduce a higher-kinded helper for these aliases, TypeScript does not support HKT and the older `BaseBoxed<T, B>` definition with `B<T>` will not type-check.
 
