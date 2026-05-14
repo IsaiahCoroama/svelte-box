@@ -1,11 +1,12 @@
-import { BaseBox } from './base.svelte.js';
+import { BaseBox } from '../base.svelte.js';
+import type { ConstBoxed } from './const.js';
 
 /**
  * Shape of the transparent forwarding layer applied to a {@link Box} value.
  * Functions become callable, objects expose their own properties, and
  * primitives keep the Box surface only.
  */
-type ForwardShape<T> = T extends (...args: infer A) => infer R
+type Forwarded<T> = T extends (...args: infer A) => infer R
     ? (...args: A) => R
     : T extends object
       ? T
@@ -25,7 +26,7 @@ type ForwardShape<T> = T extends (...args: infer A) => infer R
  *
  * ### `Boxed<T>` vs `Box<T>`
  *
- * `Box<T>` is the bare class. `Boxed<T>` is `Box<T> & ForwardShape<T>`, the
+ * `Box<T>` is the bare class. `Boxed<T>` is `Box<T> & Forward<T>`, the
  * type the `box(...)` factory returns. Both wrap the same runtime value.
  * The difference is only what TypeScript shows you on the wrapper itself.
  *
@@ -40,7 +41,7 @@ type ForwardShape<T> = T extends (...args: infer A) => infer R
  *
  * Rule of thumb: produce `Boxed<T>`, consume `Box<T>`.
  */
-export type Boxed<T> = Box<T> & ForwardShape<T>;
+export type Boxed<T> = Box<T> & Forwarded<T>;
 
 /**
  * Reactive container for any value. Wraps Svelte 5 `$state` so the value can
@@ -90,7 +91,14 @@ export type Boxed<T> = Box<T> & ForwardShape<T>;
  * boundaries each trigger reactivity at the point they happen, which is what
  * you usually want for loading and progress states.
  */
-export declare class Box<T> extends BaseBox<T> {}
+export declare class Box<T> extends BaseBox<T> {
+    /**
+     * Derive a read-only proxy-backed {@link ConstBoxed} capturing the
+     * current value. Mirrors `Box`'s own proxy semantics on the const
+     * view so transparent forwarding is preserved (read-only).
+     */
+    const(): ConstBoxed<T>;
+}
 
 /**
  * Factory equivalent to `new Box(value)`, returning the transparent
