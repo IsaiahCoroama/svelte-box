@@ -52,9 +52,9 @@ export default defineConfig(
                 // any new `.svelte.{js,ts}` file's path here.
                 projectService: {
                     allowDefaultProject: [
+                        'src/lib/core/core.svelte.js',
                         'src/lib/core/base.svelte.js',
-                        'src/lib/core/fast.svelte.js',
-                        'src/lib/core/proxy.svelte.js'
+                        'src/lib/core/fast/const.svelte.js'
                     ]
                 },
                 extraFileExtensions: ['.svelte'],
