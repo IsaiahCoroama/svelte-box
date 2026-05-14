@@ -2,10 +2,10 @@ import type { AnyBox } from '../core.svelte.js';
 import { ConstFastBox } from '../fast/const.svelte.js';
 
 /**
- * Shape of the read-only forwarding layer applied to a {@link ConstBox}
- * value. Functions become callable, objects expose their own properties
- * (read-only — write attempts via the proxy throw `TypeError`), and
- * primitives keep only the `ConstBox` surface.
+ * Read-only forwarding shape for a {@link ConstBox} value. Functions
+ * become callable, objects expose their own properties (read-only:
+ * write attempts via the proxy throw `TypeError`), primitives keep only
+ * the `ConstBox` surface.
  */
 type ConstForwarded<T> = T extends (...args: infer A) => infer R
     ? (...args: A) => R
@@ -18,26 +18,22 @@ type ConstForwarded<T> = T extends (...args: infer A) => infer R
  * function, or array, `ConstBoxed<T>` exposes `T`'s own properties as
  * read-only via a runtime Proxy. Writes are rejected at the trap.
  *
- * `ConstBox<T>` is the bare class. `ConstBoxed<T>` is what the
- * `constbox(...)` factory returns and what `box.const()` returns from a
- * `Box`.
+ * `ConstBox<T>` is the bare class; `ConstBoxed<T>` is what the
+ * `constbox(...)` factory and `box.const()` return.
  */
 export type ConstBoxed<T> = ConstBox<T> & ConstForwarded<T>;
 
 /**
- * Read-only reactive view of a value with transparent property
- * forwarding. Read-only counterpart to `Box`: forwarded reads work the
- * same, every write path throws `TypeError`. Callable inner values
- * stay callable; constructable inner values stay constructable.
+ * Read-only reactive view with transparent property forwarding.
+ * Read-only counterpart to `Box`: forwarded reads work the same,
+ * callable inners stay callable, every write path throws.
  *
- * Extends {@link ConstFastBox} which extends `CoreBox`, so the project
- * invariant holds and `instanceof CoreBox` is true. The borrow overload
- * accepts {@link AnyBox} so any class inheriting from `CoreBox` works
- * as a source, not just bare `CoreBox` instances.
+ * Extends {@link ConstFastBox} (which roots at `RawCoreBox`), so the
+ * project invariant holds. The borrow overload accepts {@link AnyBox},
+ * so any reactive-cell variant works as a source.
  *
- * Prefer the {@link constbox} factory or `box.const()` over
- * `new ConstBox(...)` so transparent forwarding shows up in TypeScript
- * without a cast.
+ * Prefer {@link constbox} or `box.const()` over `new ConstBox(...)` so
+ * forwarding shows up in TypeScript without a cast.
  */
 export declare class ConstBox<T> extends ConstFastBox<T> {
     /** Borrow `initial` so the const view shares state with the source. */
