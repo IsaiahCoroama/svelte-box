@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-05-13
+
+Pipeline-hardening release plus a single deprecation. No runtime behavior change in `src/lib/`. Drop-in upgrade with zero runtime or breaking API differences. Promoted from `0.2.2-rc.1` after the RC publish ran clean: tag-ancestry check, `npm audit signatures`, CycloneDX SBOM via `cdxgen`, OIDC publish, and least-privilege token scopes.
+
+### Deprecated
+
+- **`FastBoxed<T>` type alias** is now `@deprecated`, scheduled for removal in `0.3.0`. It was a cosmetic alias for `FastBox<T>` introduced for symmetry with the `Boxed<T>` / `Box<T>` pair, but `FastBox` performs no proxy forwarding so there is no extra shape to project. Migration: replace every `FastBoxed<T>` with `FastBox<T>`. The two are assignment-compatible, so the swap has no runtime or type effect. The `fastbox(...)` factory return type, `FastBoxedMap<K, V>`, and `FastBoxedSet<T>` now resolve to `FastBox<T>` directly; the public names of those collection aliases are unchanged.
+
 ### Tooling and infrastructure
 
 - **Coverage promoted to a blocking CI step** on the Linux leg of `ci.yml`. Removed `continue-on-error: true`; the V8 thresholds in `vitest.config.ts` (90% lines/statements/functions, 80% branches) now gate merges. Coverage HTML is uploaded as a 30-day artifact via `actions/upload-artifact`.
