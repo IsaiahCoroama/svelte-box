@@ -15,11 +15,11 @@ export class LazyBox extends MutCoreBox {
 
     prefetch() {
         if (!this.value) {
-            // try/catch wraps a synchronous throw from the loader;
-            // Promise.resolve normalises a non-thenable return; the
-            // silent `.catch` suppresses `unhandledrejection` between
-            // settle and consumer-attach (downstream consumers still see
-            // the rejection on their own handler).
+            // try/catch converts a synchronous loader throw into a
+            // rejected promise. The silent `.catch` suppresses
+            // `unhandledrejection` between settle and consumer-attach;
+            // downstream consumers still observe the rejection on their
+            // own handler.
             let p;
 
             try {
