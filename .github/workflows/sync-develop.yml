@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Sync develop to master
+
+# Rebase or squash merges to master rewrite SHAs, leaving develop with
+# stale originals. Force-reset develop to master after every master push
+# so the integration branch stays a clean view of the release line.
+# Safe because develop is single-maintainer and the reset is always a
+# fast-forward in steady state.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-develop
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Reset develop to master
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push master to develop
+        run: |
+          git fetch origin master:master
+          git push --force-with-lease origin master:develop

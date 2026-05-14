@@ -11,10 +11,8 @@ concurrency:
 
 jobs:
   changes:
-    # Decides whether the rest of the pipeline runs. Docs-only changes
-    # (markdown, LICENSE, .gitignore, sibling workflows) set `source` to
-    # false and the heavy jobs skip. Changes to ci.yml itself are NOT in
-    # the ignore list: editing the workflow always re-runs it.
+    # Skip the heavy pipeline for docs/repo-mgmt changes. ci.yml itself
+    # is intentionally NOT excluded so workflow edits always re-run.
     name: Detect source changes
     runs-on: ubuntu-latest
     outputs:
@@ -25,21 +23,33 @@ jobs:
       - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
         id: filter
         with:
-          # `source` is true when the diff includes at least one path that
-          # is NOT in any of the excluded groups below. `every` is required
-          # so a file must satisfy ALL negation patterns (not just one) to
-          # count as a match. With the default `some`, README.md would
-          # match `!LICENSE` (it isn't LICENSE) and the filter would always
-          # fire.
+          # `every` (vs default `some`): a file must satisfy ALL negation
+          # patterns to count as a non-source change. Without this, README.md
+          # would match `!LICENSE` and the filter would always fire.
           predicate-quantifier: 'every'
           filters: |
             source:
+              # Prose / license / vcs hygiene
               - '!**/*.md'
               - '!LICENSE'
               - '!.gitignore'
+              # Sibling workflows (do not affect lint, type-check, tests,
+              # or audit on this PR; their own triggers cover them)
               - '!.github/workflows/bench.yml'
               - '!.github/workflows/pages.yml'
               - '!.github/workflows/publish.yml'
+              - '!.github/workflows/codeql.yml'
+              - '!.github/workflows/scorecard.yml'
+              - '!.github/workflows/labeler.yml'
+              - '!.github/workflows/issue-manager.yml'
+              - '!.github/workflows/detect-conflicts.yml'
+              - '!.github/workflows/sync-develop.yml'
+              # Repo-management config (no runtime effect)
+              - '!.github/dependabot.yml'
+              - '!.github/labeler.yml'
+              - '!.github/CODEOWNERS'
+              - '!.github/PULL_REQUEST_TEMPLATE.md'
+              - '!.github/ISSUE_TEMPLATE/**'
 
   lint:
     name: Lint and format check
@@ -59,11 +69,8 @@ jobs:
 
       - run: bun run check
 
-      # Blocking supply-chain audit. Surfaces known CVEs in transitive
-      # dependencies at `low` and above. If a CVE lands without a fix, add
-      # the advisory ID to a documented ignore-list rather than silencing
-      # this step. A registry hiccup is rare; retrying the job is the right
-      # fix, not making the audit non-blocking.
+      # Blocking. For unfixed CVEs, add the ID to a documented ignore-list
+      # rather than silencing this step.
       - name: Audit dependencies (low and above)
         run: bun audit --audit-level=low
 
@@ -102,9 +109,7 @@ jobs:
           path: ${{ steps.pw-path.outputs.path }}
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
-      # `playwright install --with-deps` only works on Ubuntu (apt-based).
-      # macOS and Windows don't have a system-deps step at all; just install
-      # the browser binary.
+      # `--with-deps` is apt-only (Linux). macOS/Windows: browser binary only.
       - name: Install Playwright Chromium (Linux)
         if: runner.os == 'Linux' && steps.playwright-cache.outputs.cache-hit != 'true'
         run: bunx playwright install chromium --with-deps
@@ -119,9 +124,8 @@ jobs:
 
       - run: bun run test
 
-      # Coverage runs on Linux only; macOS and Windows duplicate the signal
-      # and double the runner minutes. Thresholds live in vitest.config.ts
-      # (90% lines/statements/functions, 80% branches) and gate this step.
+      # Linux only: macOS/Windows would duplicate the signal. Thresholds
+      # in vitest.config.ts (90% lines/statements/functions, 80% branches).
       - name: Coverage (Linux only)
         if: runner.os == 'Linux'
         run: bun run test:coverage
@@ -152,11 +156,8 @@ jobs:
 
   ci-all-greens:
     name: ci-all-greens
-    # Branch-protection hook: a single required check that passes when
-    # every upstream job either succeeded or was deliberately skipped
-    # because no source files changed. `if: always()` forces this job to
-    # run even when an upstream job fails, so the failure surfaces here
-    # instead of being silently skipped.
+    # Single required check for branch protection. Passes if every
+    # upstream job succeeded or was deliberately skipped (docs-only run).
     if: always()
     needs: [changes, lint, test, build]
     runs-on: ubuntu-latest
@@ -169,15 +170,11 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
         run: |
           echo "changes=$CHANGES_RESULT lint=$LINT_RESULT test=$TEST_RESULT build=$BUILD_RESULT"
-          # The detector must always succeed. If it failed, we cannot tell
-          # whether the pipeline was correctly skipped.
+          # detector failure = cannot tell if skip was deliberate
           if [[ "$CHANGES_RESULT" != "success" ]]; then
             echo "changes job did not succeed."
             exit 1
           fi
-          # lint/test/build each pass either by succeeding or by being
-          # skipped (docs-only run). Anything else (failure, cancelled) is
-          # an aggregator failure.
           for r in "$LINT_RESULT" "$TEST_RESULT" "$BUILD_RESULT"; do
             if [[ "$r" != "success" && "$r" != "skipped" ]]; then
               echo "Required job did not pass (got $r)."
