@@ -6,20 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+First minor release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the mixin-stack refactor of `BaseBox`, the new reactive-cell roots (`MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`), and the `freeze`/`isFrozen`/`clone` helpers, plus the source-tree reorganisation. Single breaking change: removal of the `FastBoxed<T>` alias deprecated in `0.2.2`. RC under `next` dist-tag as `0.3.0-rc.0`; promote to `[0.3.0]` once the RC publish lands clean.
+
+### Removed
+
+- **`FastBoxed<T>` type alias** removed (deprecated in 0.2.2). Migration: replace every `FastBoxed<T>` with `FastBox<T>`. The two were assignment-compatible, so the swap has no runtime or type effect. `fastbox(...)`, `FastBoxedMap<K, V>`, and `FastBoxedSet<T>` already resolve to `FastBox<T>` directly.
+
 ### Added
 
-- **`ConstBox<T>` read-only container** and the `constbox()` factory. Wraps either a plain value (captured into a fresh internal cell) or an existing `CoreBox`/`BaseBox` (shared state). Writes through `.value` throw `TypeError`. Inherits the standard guard, getter, and `toJSON` surface plus `snapshot`/`eager`. Useful for handing out a read-only view of state without exposing the full mutating API.
+- **`ConstBox<T>` read-only proxy view** and the `constbox()` factory. Inherits transparent forwarding from the same proxy machinery as `Box`; every write trap throws. Construct from a plain value (capture into a fresh internal cell) or an existing `AnyBox<T>` (borrow, sharing state).
+- **`ConstFastBox<T>` read-only plain view** and the `constfastbox()` factory. No proxy: reach inner-object properties through `.value`. Same capture/borrow construction modes. Cheaper than `ConstBox` when transparent forwarding is not needed.
 - **`LazyBox<T>` deferred-loader cell** and the `lazybox()` factory. First `prefetch()` invokes the loader and caches the resulting promise in `.value`; later calls return the same promise until `reset()` clears it. Synchronous throws from the loader are converted to rejected promises; non-thenable returns are wrapped in `Promise.resolve`. Loader signature: `() => T | Promise<T>`.
-- **`BaseBox.const()`** method available on every `Box`, `FastBox`, and `BaseBox` instance. Returns an independent `ConstBox<T>` snapshot of the current value.
+- **`Box.const()` and `FastBox.const()`** methods. `Box.const()` returns a `ConstBox<T>` (proxy-backed); `FastBox.const()` returns a `ConstFastBox<T>` (plain). Each leaf picks the variant that matches its own forwarding semantics.
+- **Const collection variants**: `constBoxedMap`, `constFastBoxedMap`, `constBoxedSet`, `constFastBoxedSet` factories and `ConstBoxedMap`, `ConstFastBoxedMap`, `ConstBoxedSet`, `ConstFastBoxedSet` types. Reference is frozen (`m.value = newMap` throws); the inner `SvelteMap`/`SvelteSet` stays reactive on its own mutations.
+- **`AnyBox<T>` union** and **`isBox()` runtime guard**. The sanctioned way to recognise any reactive container generically. `AnyBox<T> = CoreBox<T> | RawCoreBox<T>`; `isBox(v)` narrows `v` to `AnyBox<unknown>`. Parameter types should use `AnyBox<T>` when accepting any reactive cell.
+- **Two reactive-cell roots** in `core.svelte.js`: `CoreBox`/`MutCoreBox` over `$state()` (deep) and `RawCoreBox`/`RawMutCoreBox` over `$state.raw()` (no deep proxy). The `Mut*` siblings add a public `value` setter via the symbol-keyed `[VALUE_SET]` seam. Internal scaffolding, not re-exported.
+- **`BoxFreezable` mixin**: `freeze()` aliases `Object.freeze(box.value)`; `isFrozen()` aliases `Object.isFrozen(box.value)`. Now part of every `Box`/`FastBox`/`ConstBox`/`ConstFastBox` via `BoxCommonMixin`.
+- **`BoxCloneable` mixin**: `clone()` returns `structuredClone($state.snapshot(box.value))`. Snapshots first to escape Svelte's reactive proxy (which trips `structuredClone` directly).
+- **`BoxCommonMixin` composite**: bundles `BoxSerializableMixin`, `BoxFreezableMixin`, and `BoxCloneableMixin`. Applied at every leaf so the standard non-mutating utility surface is uniform across variants.
+- **`BoxMixer(Base, ...factories)` variadic composer**. Accumulates contributed mixin surfaces into a single `BoxMixin<B, IntersectAll<...>>`. Reads top-down at the call site instead of nested-call inside-out. Used by `BaseBox` and `ConstFastBox`. Per-step `Base` constraint enforcement is weaker than hand-chained composition; documented in `mixins.d.ts`.
 
 ### Changed
 
-- **Refactored `BaseBox` to a mixin composition.** The reactive cell now lives in `CoreBox<T>` ([src/lib/core/core.svelte.js](src/lib/core/core.svelte.js)); helper methods and guards live in `BoxGuardsMixin`, `BoxAccessorMixin` (the union of `BoxGetterMixin`/`BoxSetterMixin`/`BoxDeleterMixin`), and `BoxSerializableMixin`. `BaseBox` composes them at module scope. No public-API change: the same methods land on the same classes with the same signatures, and `Box`/`FastBox` behave identically.
-- **`BoxGuardsMixin` type constraint tightened** to `BoxConstructor<BoxCell<T>>` for parity with the other mixins. Passing a base class without a `value: T` member is now a TypeScript error rather than a runtime failure on first guard call.
+- **Refactored `BaseBox` to a mixin composition.** The reactive cell now lives in `MutCoreBox<T>` (in `core.svelte.js`); helper methods and guards live in `BoxGuardsMixin`, `BoxAccessorMixin` (composite of `BoxGetterMixin`+`BoxSetterMixin`+`BoxDeleterMixin`), and `BoxCommonMixin` (composite of `BoxSerializableMixin`+`BoxFreezableMixin`+`BoxCloneableMixin`). `BaseBox` assembles them via `BoxMixer(MutCoreBox, BoxAccessorMixin, BoxGuardsMixin, BoxCommonMixin)` at module scope. No regression in the existing public API: the same methods land on the same classes with the same signatures, plus `freeze`/`isFrozen`/`clone` newly available everywhere.
+- **`BoxGuardsMixin` type constraint tightened** to `BoxConstructor<BoxCell<unknown>>`. Passing a base class without a `value` member is now a TypeScript error rather than a runtime failure on first guard call. The mixin no longer takes an unused `T` generic since guards narrow polymorphically through `this`.
+- **Reorganised source tree** for tighter tree-shaking and clearer ownership. `core/proxy.svelte.{js,d.ts}` split into `core/proxy/{box,const,base}.{js,d.ts}` (Box, ConstBox, and the shared `buildBoxProxy` machinery). `core/fast.svelte.{js,d.ts}` split into `core/fast/box.{js,d.ts}` and `core/fast/const.svelte.{js,d.ts}` (FastBox and ConstFastBox). `collections/` moved into `core/collections/`. The mixin factories moved out of `core/core.svelte.js` into a dedicated `core/mixins.{js,d.ts}`. `utils.{js,d.ts}` renamed to `util.{js,d.ts}`. Public barrel exports unchanged; only internal import paths shifted.
+- **Extracted `buildBoxProxy(self, opts)`** into `core/proxy/base.js`. Both `Box` (mutable) and `ConstBox` (read-only via `opts.readOnly: true`) now share one Proxy implementation. `FORWARD_FIRST` is passed in per-class through `opts.forwardFirst` (Box: `'get'`, `'set'`; ConstBox: `'get'` only).
 
 ### Internal
 
-- `CoreBox`, `corebox`, the mixin functions, and the per-mixin types (`BoxGuards`, `BoxAccessor`, `BoxSerializable`, `BoxGetter`, `BoxSetter`, `BoxDeleter`) are intentionally not re-exported from the public barrel. They are documented in `AGENTS.md` as the seam for adding new helper categories.
+- `CoreBox`, `MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`, the mixin factories (`BoxGuardsMixin`, `BoxAccessorMixin`, `BoxSerializableMixin`, `BoxFreezableMixin`, `BoxCloneableMixin`, `BoxCommonMixin`, plus the constituent `BoxGetterMixin`/`BoxSetterMixin`/`BoxDeleterMixin`), the per-mixin type-only classes (`BoxGuards`, `BoxAccessor`, `BoxSerializable`, `BoxFreezable`, `BoxCloneable`, `BoxGetter`, `BoxSetter`, `BoxDeleter`), and `BoxMixer` are intentionally not re-exported from the public barrel. They are documented in `AGENTS.md` as the seam for adding new helper categories.
 
 ## [0.2.2] - 2026-05-13
 
