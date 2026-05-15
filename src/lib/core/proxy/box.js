@@ -27,11 +27,6 @@ export class Box extends BaseBox {
         });
     }
 
-    /**
-     * Read-only proxy-backed {@link ConstBox} borrowing this cell so the
-     * view stays reactive to source updates. Use this to hand a Box to
-     * code that requires a `ConstBox` without giving up reactivity.
-     */
     const() {
         return new ConstBox(this);
     }
