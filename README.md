@@ -146,6 +146,7 @@ The library exports two reactive containers with the same `.value` accessor and 
 | ------------------------------------------------------- | -------- | ------------------------ |
 | `box.value` reactive read and write                     | yes      | yes                      |
 | `get`, `set`, `del`, `snapshot`, `eager`, `toJSON`      | yes      | yes                      |
+| `freeze`, `isFrozen`, `clone`, `const`                  | yes      | yes                      |
 | 14 type guards (`isString`, `isObject`, etc.)           | yes      | yes                      |
 | Pass across function or class boundaries reactively     | yes      | yes                      |
 | Transparent property forwarding (`box.foo` reads inner) | yes      | no, use `box.value`      |
@@ -284,6 +285,8 @@ For the FastBox variant, use `fastBoxedMap` and `fastBoxedSet`. There is no Prox
 
 `fastBoxed*` is the right choice when you want the lower per-instance cost of `FastBox` and do not mind the `.value.method(...)` access pattern. Reactivity behaves the same as the proxy version.
 
+Use `constBoxedMap` / `constFastBoxedMap` / `constBoxedSet` / `constFastBoxedSet` when the collection identity must not change (`m.value = newMap` throws) but its contents can still be mutated through the forwarded methods (`m.set(k, v)`) or via `.value` on the FastBox variant.
+
 ### Type guards
 
 Every Box has guards that narrow `T` in a normal `if` block:
@@ -304,17 +307,20 @@ if (b.isNumber()) {
 
 Prefer the `box(...)` factory below over `new Box(...)` at all call sites. Direct construction stays supported for two cases. First, subclassing: `class Counter extends Box<number>` constructs via `super(initial)`, and instantiating a subclass uses `new Counter(0)`. Second, the rare case where you specifically want the bare `Box<T>` surface without the forwarding shape.
 
-| Member             | Description                                                                        |
-| ------------------ | ---------------------------------------------------------------------------------- |
-| `new Box(initial)` | Construct a Box around `initial`. Prefer `box(initial)`.                           |
-| `box.value`        | Read or write the boxed value. Reactive.                                           |
-| `box.get()`        | Returns `box.value`. Convenience for functional code.                              |
-| `box.set(v)`       | Sets `box.value = v`.                                                              |
-| `box.del()`        | Sets `box.value = undefined`. Only callable when `T` already includes `undefined`. |
-| `box.snapshot()`   | Returns a non-reactive deep clone of the current value. Wraps `$state.snapshot`.   |
-| `box.eager()`      | Returns the current value bypassing async UI suspension. Wraps `$state.eager`.     |
-| `box.toJSON()`     | Returns the inner value. Called automatically by `JSON.stringify`.                 |
-| `box.const()`      | Returns a read-only `ConstBox<T>` capturing the current value.                     |
+| Member             | Description                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| `new Box(initial)` | Construct a Box around `initial`. Prefer `box(initial)`.                                 |
+| `box.value`        | Read or write the boxed value. Reactive.                                                 |
+| `box.get()`        | Returns `box.value`. Convenience for functional code.                                    |
+| `box.set(v)`       | Sets `box.value = v`.                                                                    |
+| `box.del()`        | Sets `box.value = undefined`. Only callable when `T` already includes `undefined`.       |
+| `box.snapshot()`   | Returns a non-reactive deep clone of the current value. Wraps `$state.snapshot`.         |
+| `box.eager()`      | Returns the current value bypassing async UI suspension. Wraps `$state.eager`.           |
+| `box.toJSON()`     | Returns the inner value. Called automatically by `JSON.stringify`.                       |
+| `box.const()`      | Returns a read-only `ConstBox<T>` capturing the current value.                           |
+| `box.freeze()`     | `Object.freeze(box.value)`. Returns `this` for chaining. Does not freeze the box itself. |
+| `box.isFrozen()`   | `Object.isFrozen(box.value)`.                                                            |
+| `box.clone()`      | Returns `structuredClone($state.snapshot(box.value))`. Plain, non-reactive deep copy.    |
 
 Type guards: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUndefined`, `isNull`, `isNullish`, `isPrimitive`, `isObject`, `isArray`, `isFunction`, `isMap`, `isSet`. Each narrows the boxed value via the polymorphic-`this` predicate `this is this & BoxCell<X>`, so inside an `if (b.isString())` block the original subclass type is preserved and only the `value` field is refined to `string`.
 
@@ -341,7 +347,7 @@ s.value.add('y'); // reactive
 
 ### `class FastBox<T>`
 
-Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no proxy mediation of `instanceof` (a `FastBox` is a plain class, so subclass `instanceof` works through the normal prototype chain). The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`) and all 14 type guards work identically because they live on the shared `BaseBox` parent.
+Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no proxy mediation of `instanceof` (a `FastBox` is a plain class, so subclass `instanceof` works through the normal prototype chain). The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`, `freeze`, `isFrozen`, `clone`) and all 14 type guards work identically because they live on the shared `BaseBox` parent. `fastbox.const()` returns a `ConstFastBox<T>` (the no-proxy const variant) capturing the current value.
 
 Prefer the `fastbox(...)` factory below for parity with `box(...)`.
 
@@ -362,7 +368,7 @@ Exported so a parameter type can accept either subclass: `function f(b: BaseBox<
 
 ### `class ConstBox<T>`
 
-Read-only reactive view of a value. Inherits `get()`, `toJSON()`, and the 14 type guards from the shared mixin chain; adds `snapshot()` and `eager()`. Writes through `.value` throw `TypeError`.
+Read-only reactive view of a value. Inherits `get()`, `toJSON()`, `freeze()`, `isFrozen()`, `clone()`, and the 14 type guards from the shared mixin chain; adds `snapshot()` and `eager()`. Writes through `.value` throw `TypeError` (but `freeze()` on the inner value is still allowed).
 
 Two construction modes:
 
@@ -385,6 +391,39 @@ const frozen = constbox(10); // independent, captured value
 ### `constbox(value | otherBox)`
 
 Factory equivalent to `new ConstBox(...)`. Returns a `ConstBox<T>`.
+
+### `class ConstFastBox<T>`
+
+Read-only counterpart to `FastBox`. No runtime Proxy: reach inner-object properties through `.value`. Writes through `.value` throw `TypeError`. Inherits the same `get()`, `toJSON()`, `freeze()`, `isFrozen()`, `clone()`, plus the 14 type guards; adds `snapshot()` and `eager()`. Same capture-vs-borrow construction modes as `ConstBox`:
+
+- `new ConstFastBox(value)` captures into a fresh internal cell.
+- `new ConstFastBox(otherBox)` (any `AnyBox<T>`) borrows from the source, so reads track the live value but writes still throw.
+
+Use `ConstFastBox` over `ConstBox` when the consumer only ever reads through `.value`. Construction is ~1.5x faster (no proxy); reads match raw `$state` speed.
+
+### `constfastbox(value | otherBox)`
+
+Factory equivalent to `new ConstFastBox(...)`. Returns a `ConstFastBox<T>`.
+
+### `constBoxedMap(entries?)`, `constFastBoxedMap(entries?)`
+
+Const variants of `boxedMap` / `fastBoxedMap`. The map reference is frozen (`m.value = newMap` throws); the inner `SvelteMap` stays reactive on its own mutations. `constBoxedMap` exposes forwarded `m.set(k, v)` / `m.get(k)` through the proxy; `constFastBoxedMap` requires `m.value.set(...)` / `m.value.get(...)`. Use when the collection identity must not change but its contents can.
+
+### `constBoxedSet(values?)`, `constFastBoxedSet(values?)`
+
+Const variants of `boxedSet` / `fastBoxedSet`. Reference is frozen; the inner `SvelteSet` stays reactive. `constBoxedSet.add(t)` forwards through the proxy; `constFastBoxedSet.value.add(t)` goes through `.value`.
+
+### `isBox(value)`
+
+Runtime guard for `AnyBox<T>`. True when `value` inherits from either reactive-cell root (`CoreBox` or `RawCoreBox`), so every reactive container in the library plus any user subclass following the project invariant is recognised. Narrows `value` to `AnyBox<unknown>`.
+
+```ts
+import { isBox, box, type AnyBox } from '@coroama/svelte-box';
+
+function unwrap<T>(v: AnyBox<T> | T): T {
+    return isBox(v) ? v.value : v;
+}
+```
 
 ### `class LazyBox<T>`
 
@@ -415,11 +454,19 @@ Factory equivalent to `new LazyBox(loader)`. Returns a `LazyBox<T>`.
 
 ```ts
 type Boxed<T>; // Box<T> with transparent forwarding
+type ConstBoxed<T>; // ConstBox<T> with read-only transparent forwarding
 type BoxedMap<K, V>; // Boxed<SvelteMap<K, V>>
 type BoxedSet<T>; // Boxed<SvelteSet<T>>
 type FastBoxedMap<K, V>; // FastBox<SvelteMap<K, V>>
 type FastBoxedSet<T>; // FastBox<SvelteSet<T>>
+type ConstBoxedMap<K, V>; // ConstBoxed<SvelteMap<K, V>>
+type ConstBoxedSet<T>; // ConstBoxed<SvelteSet<T>>
+type ConstFastBoxedMap<K, V>; // ConstFastBox<SvelteMap<K, V>>
+type ConstFastBoxedSet<T>; // ConstFastBox<SvelteSet<T>>
+type AnyBox<T>; // CoreBox<T> | RawCoreBox<T>; accept-any-box parameter type
+type BoxCell<T>; // { value: T }; narrowed-value side of every type guard
 type LazyLoaderFn<T>; // () => T | Promise<T>
+type PrimitiveType; // union of every primitive value type
 ```
 
 #### `Boxed<T>` vs `Box<T>` (and the FastBox pair)
@@ -838,15 +885,19 @@ For unit tests, `box.snapshot()` and `box.value` are both safe to compare with `
 
 ## Bundle size and tree-shaking
 
-The library ships as ESM with `"sideEffects": ["**/*.css"]` so all exports are tree-shakeable. The lib is split across `core/` (Box, FastBox, helpers, type guards) and `collections/` (Map and Set wrappers, with map and set in separate files), so importing only what you need only pulls in what you need:
+The library ships as ESM with `"sideEffects": ["**/*.css"]` so all exports are tree-shakeable. The lib is split across `core/` (cell roots, mixin scaffolding, Box, FastBox, ConstBox, ConstFastBox, LazyBox, helpers, type guards) and `core/collections/` (Map and Set wrappers, with map and set in separate files), so importing only what you need only pulls in what you need:
 
-| Import                                 | What gets bundled                                  |
-| -------------------------------------- | -------------------------------------------------- |
-| `Box`, `box`, type guards, helpers     | Box class only. No `SvelteMap` or `SvelteSet`.     |
-| `FastBox`, `fastbox`                   | FastBox class only. No `SvelteMap` or `SvelteSet`. |
-| `boxedMap` or `fastBoxedMap`           | Wrapper plus `SvelteMap`. No `SvelteSet`.          |
-| `boxedSet` or `fastBoxedSet`           | Wrapper plus `SvelteSet`. No `SvelteMap`.          |
-| Types only (`Boxed`, `BoxedMap`, etc.) | Erased at build time.                              |
+| Import                                                                    | What gets bundled                                              |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `Box`, `box`, type guards, helpers                                        | Box class only. No `SvelteMap` or `SvelteSet`.                 |
+| `FastBox`, `fastbox`                                                      | FastBox class only. No `SvelteMap` or `SvelteSet`.             |
+| `ConstBox`, `constbox`                                                    | ConstBox plus its parent chain. No collections.                |
+| `ConstFastBox`, `constfastbox`                                            | ConstFastBox plus its parent chain. No collections.            |
+| `LazyBox`, `lazybox`                                                      | LazyBox plus the cell root. No guards, accessors, collections. |
+| `boxedMap`, `fastBoxedMap`, `constBoxedMap`, or `constFastBoxedMap`       | Wrapper plus `SvelteMap`. No `SvelteSet`.                      |
+| `boxedSet`, `fastBoxedSet`, `constBoxedSet`, or `constFastBoxedSet`       | Wrapper plus `SvelteSet`. No `SvelteMap`.                      |
+| `isBox`, `AnyBox`                                                         | Cell-root constants only. No proxy machinery.                  |
+| Types only (`Boxed`, `BoxedMap`, `ConstBoxed`, `AnyBox`, `BoxCell`, etc.) | Erased at build time.                                          |
 
 A modern tree-shaking bundler (Vite, Rollup, esbuild, webpack 5+) drops whichever of `SvelteMap`/`SvelteSet` you do not actually import. There are no runtime dependencies beyond the `svelte` peer.
 
@@ -868,7 +919,7 @@ For reference, the Box proxy implements: `apply`, `construct`, `get`, `set`, `ha
 - **`FastBox` collisions are destructive, not shadowed.** With no proxy in the way, calling `fb.set(k, v)` on a `FastBox<Map<K, V>>` invokes `BaseBox.set(value)` and overwrites `.value` with `k`, dropping `v`. Always reach inner Map/Set methods through `.value`: `fb.value.set(k, v)`.
 - **Plain `Map` and `Set` are not reactive.** Use `boxedMap()` or `boxedSet()` instead of `new Box(new Map())`.
 - **`Object.keys(box)` returns the inner object's keys.** Box's helper methods are hidden from key enumeration so spreads and iteration behave like the inner value.
-- **`Object.freeze(box)` throws.** Freezing or sealing the proxy itself is not supported. Freeze `box.value` instead.
+- **`Object.freeze(box)` throws.** Freezing or sealing the proxy itself is not supported. Freeze `box.value` instead, or call `box.freeze()` which is the same thing with a return-this for chaining.
 - **Tools that walk the proxy see a function, not the inner value.** The Box proxy wraps a function target so it can be callable, which means `node:util.inspect(box)` prints something like `[Function (anonymous)]` and `console.log(box)` in Node is not useful. Use `console.log(box.snapshot())` (or `box.value`) for readable output. Browser DevTools handles this better, expanding the proxy to show forwarded keys.
 - **`structuredClone(box)` throws.** `structuredClone` rejects functions, and the proxy target is a function (so the box can be callable). Clone `box.value` or `box.snapshot()` instead, both of which produce a plain serializable object.
 - **FastBox does no transparent forwarding.** `fastbox.foo` is `undefined` even when `fastbox.value.foo` exists. Mixing Box and FastBox with the same `BaseBox<T>` parameter type is fine, but call sites that depend on forwarding must use `Box`.
@@ -883,9 +934,12 @@ The repository ships:
     - Construction, `instanceof Box`, and subclass `instanceof` propagation through the proxy.
     - Primitive, object, array, function, and class-instance reactivity, including deep-nested mutations and cross-boundary passing through multiple function layers and class storage.
     - All 14 type guards plus reactive re-evaluation as the boxed type changes.
-    - `snapshot()`, `eager()`, `toJSON()` / `JSON.stringify`, `structuredClone`.
+    - `snapshot()`, `eager()`, `toJSON()` / `JSON.stringify`, `structuredClone`, `freeze()` / `isFrozen()`, `clone()`.
     - Proxy semantics: `Object.freeze` rejection, `Object.setPrototypeOf` rejection, `Object.defineProperty` routing, `delete` of own keys, stable method identity for forwarded methods, the `apply`-trap `this` contract, and primitive non-forwarding.
-    - `BoxedMap` / `BoxedSet` (proxy variants) plus `FastBoxedMap` / `FastBoxedSet` (no-proxy variants) for mutations, replacement, iteration, and reactivity.
+    - `ConstBox` / `ConstFastBox` capture and borrow modes, read-only write-trap rejection, and `box.const()` / `fastbox.const()` derivation returning the right variant.
+    - `LazyBox` loader semantics: warm-cache promise reuse, `reset()` invalidation, synchronous-throw normalisation to rejected promise, non-thenable wrapping.
+    - `isBox(value)` recognition of every reactive-cell variant plus rejection of non-box inputs.
+    - `BoxedMap` / `BoxedSet` (proxy variants), `FastBoxedMap` / `FastBoxedSet` (no-proxy variants), and the `Const*` collection family for mutations, replacement, iteration, and reactivity.
     - `$derived` integration and bound-method closure preservation.
 - A benchmark suite split across [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) (Box and FastBox core plus realistic patterns), [benchmarking/const.svelte.bench.ts](benchmarking/const.svelte.bench.ts) (ConstBox and ConstFastBox, capture and borrow), [benchmarking/lazy.svelte.bench.ts](benchmarking/lazy.svelte.bench.ts) (LazyBox prefetch cache), [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts), and [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts). Comparison baselines (raw `$state`, class with `$state` field, class accessor pair, `$state({ value })` wrapper, direct `SvelteMap`/`SvelteSet`, hand-rolled cached-promise) cover construction, reads, writes, forwarded property access, method calls, type guards, snapshot, eager, JSON.stringify, BoxedMap/Set operations, cross-boundary mutation, bulk stress paths, and the const/lazy variants.
 - A GitHub Actions CI pipeline that runs lint, type-check, build, and the test suite on every push to `master` and on every pull request. Tests run on Linux, macOS, and Windows via a matrix; a single `ci-all-greens` aggregator job is the required check for branch protection and reports success even when the pipeline is skipped because only docs changed.
