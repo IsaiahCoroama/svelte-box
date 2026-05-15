@@ -17,25 +17,15 @@
         b.value += 1;
     }
 
-    // freeze / isFrozen / clone demo. Separate box so freezing it does not
-    // disturb the other sections.
-    const frozenable = box({ count: 0, label: 'fresh' });
-    let freezeError = $state<string | null>(null);
+    // clone() demo. Separate box so the cloned state does not bleed into
+    // the other sections.
+    const clonable = box({ count: 0, label: 'fresh' });
     let cloned = $state<{ count: number; label: string } | null>(null);
 
-    function tryMutateAfterFreeze() {
-        freezeError = null;
-        try {
-            frozenable.count += 1;
-        } catch (err) {
-            freezeError = err instanceof Error ? err.message : String(err);
-        }
-    }
-
-    // const() snapshot demo. Bump `live`, take a snapshot, bump again, see
-    // that the snapshot held its value at call time.
+    // .const() borrow demo. Bump `live`, take a const view, bump again,
+    // see the view track because .const() borrows the source cell.
     const live = box(0);
-    let snapshot = $state<ReturnType<typeof live.const> | null>(null);
+    let constView = $state<ReturnType<typeof live.const> | null>(null);
 
     // isBox demo with mixed inputs.
     const samples = [
@@ -99,28 +89,22 @@
 </section>
 
 <section>
-    <h2><code>freeze()</code> / <code>isFrozen()</code> / <code>clone()</code></h2>
-    <p>value: {JSON.stringify(frozenable.value)}</p>
-    <p>isFrozen: {frozenable.isFrozen()}</p>
-    <button onclick={() => frozenable.count++}>count++</button>
-    <button onclick={() => frozenable.freeze()}>freeze</button>
-    <button onclick={tryMutateAfterFreeze}>mutate after freeze</button>
-    <button onclick={() => (cloned = frozenable.clone())}>clone()</button>
-    {#if freezeError}
-        <p style="color: var(--error)">TypeError: {freezeError}</p>
-    {/if}
+    <h2><code>clone()</code></h2>
+    <p>value: {JSON.stringify(clonable.value)}</p>
+    <button onclick={() => clonable.count++}>count++</button>
+    <button onclick={() => (cloned = clonable.clone())}>clone()</button>
     {#if cloned}
         <p>clone (plain, non-reactive): {JSON.stringify(cloned)}</p>
     {/if}
 </section>
 
 <section>
-    <h2><code>box.const()</code> snapshot</h2>
+    <h2><code>box.const()</code> reactive read-only view</h2>
     <p>live: {live.value}</p>
     <button onclick={() => live.value++}>live++</button>
-    <button onclick={() => (snapshot = live.const())}>snapshot live.const()</button>
-    {#if snapshot}
-        <p>snapshot taken at: {snapshot.value} (does not change when live++)</p>
+    <button onclick={() => (constView = live.const())}>take live.const()</button>
+    {#if constView}
+        <p>view: {constView.value} (tracks live; writes through view would throw)</p>
     {/if}
 </section>
 

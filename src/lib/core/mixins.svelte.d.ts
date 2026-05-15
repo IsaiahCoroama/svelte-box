@@ -42,12 +42,11 @@ type ExtractMixinTypes<T extends readonly BoxMixinFactory[]> = {
 export type BoxAccessor<T> = BoxGetter<T> & BoxSetter<T> & BoxDeleter<T>;
 
 /**
- * Combined non-mutating utility surface: serialise, freeze, clone.
- * Produced by {@link BoxCommonMixin}, applied wherever a class wants
- * the standard auxiliary methods regardless of whether the value is
- * mutable.
+ * Combined non-mutating utility surface: serialise, clone. Produced by
+ * {@link BoxCommonMixin}, applied wherever a class wants the standard
+ * auxiliary methods regardless of whether the value is mutable.
  */
-export type BoxCommonMixins<T> = BoxSerializable<T> & BoxFreezable & BoxCloneable<T>;
+export type BoxCommonMixins<T> = BoxSerializable<T> & BoxCloneable<T>;
 
 /**
  * Type-guard surface contributed by {@link BoxGuardsMixin}. Type-only.
@@ -103,29 +102,6 @@ export declare class BoxSerializable<T> {
 }
 
 /**
- * Freeze surface contributed by {@link BoxFreezableMixin}. Flag-based:
- * Svelte 5's `$state` proxy refuses `Object.freeze`, so the wrapper
- * tracks frozen status on a reactive `$state(boolean)` field. After
- * freeze, `box.value = ...`, `box.set(...)`, `box.del()`, and forwarded
- * writes through the `Box` proxy throw `TypeError`. `FastBox` blocks
- * `.value` reassignment but cannot intercept inner-property writes
- * (`fb.value.x = ...`) because no proxy wraps it.
- */
-export declare class BoxFreezable {
-    /**
-     * Mark the box read-only. Subsequent writes through `.value`,
-     * `set`, `del`, or forwarded properties throw `TypeError`. Returns
-     * `this` for chaining.
-     */
-    freeze(): this;
-    /**
-     * Reactive boolean. `true` once {@link freeze} has been called.
-     * Effects reading this re-run on the transition.
-     */
-    isFrozen(): boolean;
-}
-
-/**
  * Deep-clone surface contributed by {@link BoxCloneableMixin}.
  * Snapshots before cloning so the underlying `$state` proxy does not
  * trip `structuredClone`.
@@ -174,11 +150,6 @@ export declare function BoxSerializableMixin<T, B extends BoxConstructor<BoxCell
     Base: B
 ): BoxMixin<B, BoxSerializable<T>>;
 
-/** Mix `freeze()` and `isFrozen()` onto `Base`. */
-export declare function BoxFreezableMixin<B extends BoxConstructor<BoxCell<unknown>>>(
-    Base: B
-): BoxMixin<B, BoxFreezable>;
-
 /**
  * Mix `clone()` onto `Base`. Body snapshots the inner value before
  * passing it to `structuredClone` to avoid the `DataCloneError` raised
@@ -189,9 +160,9 @@ export declare function BoxCloneableMixin<T, B extends BoxConstructor<BoxCell<T>
 ): BoxMixin<B, BoxCloneable<T>>;
 
 /**
- * Compose {@link BoxSerializable}, {@link BoxFreezable}, and
- * {@link BoxCloneable} onto `Base`. Convenience for the standard
- * non-mutating utility surface attached to every box variant.
+ * Compose {@link BoxSerializable} and {@link BoxCloneable} onto `Base`.
+ * Convenience for the standard non-mutating utility surface attached
+ * to every box variant.
  */
 export declare function BoxCommonMixin<T, B extends BoxConstructor<BoxCell<T>>>(
     Base: B
