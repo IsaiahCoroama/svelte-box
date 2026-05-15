@@ -1,4 +1,3 @@
-import type { Snapshot } from 'svelte';
 import type { AnyBox, RawCoreBox } from '../core.svelte.js';
 import type { BoxGetter, BoxGuards, BoxCommonMixins } from '../mixins.svelte.js';
 
@@ -12,12 +11,13 @@ declare const _Mixins: new <T>(initial: T) => _Mixins<T>;
  * `TypeError`.
  *
  * Read-only counterpart to `FastBox`. Mixin chain over
- * {@link RawCoreBox} provides {@link BoxGuards}, {@link BoxGetter}, and
- * {@link BoxSerializable}; storage is `$state.raw`.
+ * {@link RawCoreBox} provides {@link BoxGuards}, {@link BoxGetter},
+ * {@link BoxSerializable}, and {@link BoxCloneable}; storage is
+ * `$state.raw`.
  *
  * Construct from a plain value (captured into the inherited raw cell)
- * or an existing {@link AnyBox} (shared state). Use `fastbox.const()`
- * for a snapshot from a `FastBox`.
+ * or an existing {@link AnyBox} (shared state). `fastbox.const()` is
+ * the shorthand that always borrows from the source `FastBox`.
  */
 export declare class ConstFastBox<T> extends _Mixins<T> {
     /** Read-only reactive accessor for the underlying value. */
@@ -30,7 +30,7 @@ export declare class ConstFastBox<T> extends _Mixins<T> {
     constructor(initial: T);
 
     /** Non-reactive deep clone of the current value. */
-    snapshot(): Snapshot<T>;
+    snapshot(): T;
 
     /** Current value, bypassing async UI suspension. */
     eager(): T;

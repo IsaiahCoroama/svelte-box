@@ -1,6 +1,5 @@
 import type { BoxAccessor, BoxGuards, BoxCommonMixins } from './mixins.svelte.js';
 import type { MutCoreBox } from './core.svelte.js';
-import type { Snapshot } from 'svelte';
 
 // Synthetic constructor for the assembled mixin chain. Type/value pair
 // shares the `_Mixins` name so the class below can `extends _Mixins<T>`.
@@ -28,7 +27,7 @@ export declare class BaseBox<T> extends _Mixins<T> {
      * handing the value to code that should not see Svelte's reactive
      * proxy.
      */
-    snapshot(): Snapshot<T>;
+    snapshot(): T;
 
     /**
      * Current value, bypassing any in-flight async UI suspension.
