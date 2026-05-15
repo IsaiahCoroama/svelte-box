@@ -1,7 +1,10 @@
+import type { BoxAccessor, BoxGuards, BoxCommonMixins } from './mixins.js';
+import type { MutCoreBox } from './core.svelte.js';
 import type { Snapshot } from 'svelte';
-import type { BoxAccessor, BoxGuards, BoxSerializable, MutCoreBox } from './core.svelte.js';
 
-type _Mixins<T> = MutCoreBox<T> & BoxGuards & BoxAccessor<T> & BoxSerializable<T>;
+// Synthetic constructor for the assembled mixin chain. Type/value pair
+// shares the `_Mixins` name so the class below can `extends _Mixins<T>`.
+type _Mixins<T> = MutCoreBox<T> & BoxGuards & BoxAccessor<T> & BoxCommonMixins<T>;
 declare const _Mixins: new <T>(initial: T) => _Mixins<T>;
 
 /**
