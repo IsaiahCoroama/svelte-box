@@ -1,4 +1,4 @@
-import { isFunction, isObjectLike } from '../utils.js';
+import { isFunction, isObjectLike } from '../util.js';
 
 // Shared dummy proxy target. Function so the proxy is callable and
 // constructable when the inner value is a function or class. Never

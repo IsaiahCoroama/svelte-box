@@ -2,15 +2,6 @@ import { BaseBox } from '../base.svelte.js';
 import type { ConstFastBox } from './const.svelte.js';
 
 /**
- * @deprecated Since 0.2.2. Use {@link FastBox} directly. Cosmetic alias
- * introduced for symmetry with the {@link Boxed} / {@link Box} pair,
- * but `FastBox` has no proxy forwarding so there is no extra shape to
- * project. Kept for backward compatibility, removed in 0.3.0. Migration
- * is a name swap: the two are assignment-compatible.
- */
-export type FastBoxed<T> = FastBox<T>;
-
-/**
  * Reactive container with the same `.value` surface and helpers as
  * {@link BaseBox} (and {@link Box}), without a runtime Proxy. No
  * transparent forwarding, no callability for function values, no

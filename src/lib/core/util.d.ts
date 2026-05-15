@@ -9,6 +9,11 @@ export type PrimitiveType = string | number | bigint | boolean | symbol | null |
 /** Broadest function shape. Every function is assignable to `UnknownFn`. */
 export type UnknownFn = (...args: never[]) => unknown;
 
+// Intersect all extracted M types.
+export type IntersectAll<T extends readonly unknown[]> = T extends readonly [infer H, ...infer R]
+    ? H & IntersectAll<R>
+    : object;
+
 /** True when `v` is a function. Narrows `v` to a callable type. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export declare function isFunction(v: unknown): v is (...args: any[]) => unknown;
