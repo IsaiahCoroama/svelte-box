@@ -17,7 +17,7 @@ bun add @coroama/svelte-box
 
 Peer dependency: `svelte ^5.0.0`. The compiled package runs anywhere a modern JS runtime does. Node 20.6 or newer is only needed if you are building from source.
 
-**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The SvelteKit playground under `src/routes/`, redeployed by GitHub Pages after a green CI run on `master` whose merge touched `src/`, `static/`, or a build config file. Docs-only merges skip the redeploy. Try `Box` and `FastBox` side-by-side without cloning the repo.
+**Live demo:** <https://isaiahcoroama.github.io/svelte-box/>. The site root is a versions index that links to every deployed playground build. `latest/` tracks `master` and redeploys after a green CI run whose merge touches `src/`, `static/`, or a build config file. Each `v*` tag deploys to its own `v<tag>/` subpath, and the master deploy backfills any missing tags. Try `Box`, `FastBox`, `ConstBox`/`ConstFastBox`, and `LazyBox` side-by-side without cloning the repo.
 
 ## Contents
 
@@ -754,30 +754,30 @@ Higher `hz` is faster. Baseline is the column to beat; Box and FastBox are compa
 
 **TL;DR.**
 
-- For most read or write operations on a primitive or object Box, **FastBox is within 1 to 5% of the Baseline (effectively match)**. **Box is ~5 to 12% slower**.
-- Construction is the only hot path with a real gap: `new Box(...)` is ~3.0x slower than a `$state` class field; `new FastBox(...)` is ~1.9x slower. Almost always invisible because you construct once.
+- For most read or write operations on a primitive or object Box, **FastBox is within ~5% of the Baseline (effectively match)**. **Box is ~5 to 15% slower**.
+- Construction is the only hot path with a real gap: `new Box(...)` is ~3.7x slower than a `$state` class field; `new FastBox(...)` is ~2.1x slower. Almost always invisible because you construct once.
 - Tight loops over thousands of operations per frame are the only place anything gets meaningfully slow. Hoist `box.value` once before the loop.
 
 #### Hot-path operations
 
-| Operation                            | Baseline                       | Box                      | FastBox                   |
-| ------------------------------------ | ------------------------------ | ------------------------ | ------------------------- |
-| Construct (primitive)                | 724k hz (`$state` class field) | 239k hz (3.02x slower)   | 372k hz (1.94x slower)    |
-| Construct (object)                   | 671k hz                        | 221k hz (3.03x slower)   | 260k hz (2.58x slower)    |
-| Read `.value` (primitive)            | 747k hz (`$state` class field) | 719k hz (match)          | 745k hz (match)           |
-| Write `.value` (primitive)           | 378k hz (accessor)             | 363k hz (match)          | 380k hz (match)           |
-| Read object prop                     | 702k hz (inner `$state` proxy) | 671k hz (match) \*       | 714k hz (match) \*        |
-| Write object prop                    | 347k hz                        | 344k hz (match) \*       | 369k hz (match) \*        |
-| Forwarded method call                | 755k hz                        | 692k hz (1.09x slower)   | 724k hz (1.04x slower) \* |
-| Forwarded method identity            | 757k hz                        | 673k hz (1.12x slower)   | 717k hz (1.06x slower) \* |
-| `box.snapshot()`                     | 94.9k hz                       | 84.7k hz (1.12x slower)  | 88.3k hz (1.07x slower)   |
-| `JSON.stringify`                     | 237k hz                        | 228k hz (match)          | 242k hz (match)           |
-| `box.eager()`                        | 764k hz                        | 545k hz (1.40x slower)   | 595k hz (1.28x slower)    |
-| Cross-boundary mutation              | 374k hz (accessor)             | 345k hz (match)          | 367k hz (match)           |
-| Cross-boundary read from class field | 726k hz (accessor)             | 683k hz (match)          | 730k hz (match)           |
-| `Map.set`                            | 372k hz (`SvelteMap`)          | 337k hz (1.11x slower) † | 332k hz (1.12x slower) ‡  |
-| `Map.get`                            | 685k hz                        | 615k hz (1.11x slower) † | 672k hz (match) ‡         |
-| `Set.add`                            | 361k hz (`SvelteSet`)          | 342k hz (match) †        | 360k hz (match) ‡         |
+| Operation                            | Baseline                       | Box                       | FastBox                   |
+| ------------------------------------ | ------------------------------ | ------------------------- | ------------------------- |
+| Construct (primitive)                | 724k hz (`$state` class field) | 194k hz (3.73x slower)    | 338k hz (2.15x slower)    |
+| Construct (object)                   | 655k hz                        | 181k hz (3.62x slower)    | 298k hz (2.20x slower)    |
+| Read `.value` (primitive)            | 747k hz (`$state` class field) | 693k hz (1.08x slower)    | 743k hz (match)           |
+| Write `.value` (primitive)           | 366k hz (accessor)             | 329k hz (1.11x slower)    | 378k hz (match)           |
+| Read object prop                     | 702k hz (inner `$state` proxy) | 689k hz (match) \*        | 691k hz (match) \*        |
+| Write object prop                    | 354k hz                        | 316k hz (1.12x slower) \* | 350k hz (match) \*        |
+| Forwarded method call                | 768k hz                        | 687k hz (1.12x slower)    | 728k hz (match) \*        |
+| Forwarded method identity            | 759k hz                        | 677k hz (1.12x slower)    | 687k hz (1.10x slower) \* |
+| `box.snapshot()`                     | 86.4k hz                       | 84.2k hz (match)          | 86.3k hz (match)          |
+| `JSON.stringify`                     | 246k hz                        | 234k hz (match)           | 252k hz (match)           |
+| `box.eager()`                        | 748k hz                        | 675k hz (1.11x slower)    | 743k hz (match)           |
+| Cross-boundary mutation              | 350k hz (accessor)             | 323k hz (1.09x slower)    | 379k hz (match)           |
+| Cross-boundary read from class field | 748k hz (`$state` class field) | 696k hz (1.07x slower)    | 750k hz (match)           |
+| `Map.set`                            | 375k hz (`SvelteMap`)          | 350k hz (1.07x slower) †  | 335k hz (1.12x slower) ‡  |
+| `Map.get`                            | 674k hz                        | 630k hz (1.07x slower) †  | 686k hz (match) ‡         |
+| `Set.add`                            | 350k hz (`SvelteSet`)          | 316k hz (1.11x slower) †  | 368k hz (match) ‡         |
 
 \* Box transparently forwards `box.foo`. FastBox does not, so its row reads through `.value.foo`.
 † `boxedMap.set(k, v)` works because Box's proxy shadows `set` with `SvelteMap.set`. `boxedSet.add(t)` is similar.
@@ -789,22 +789,22 @@ These are the only places the gap is large enough to feel. Every cell here is sl
 
 | Operation                            | Baseline | Box                        | FastBox                 |
 | ------------------------------------ | -------- | -------------------------- | ----------------------- |
-| 1000 instances constructed in a loop | 25.6k hz | 646 hz (39.7x slower)      | 3.35k hz (7.65x slower) |
-| 10k tight-loop `.value` reads        | 9.23k hz | 1.81k hz (5.12x slower)    | 9.28k hz (match)        |
-| 10k tight-loop forwarded-prop reads  | 1.87k hz | 1.19k hz (1.58x slower) \* | 1.88k hz (match) \*     |
+| 1000 instances constructed in a loop | 25.5k hz | 451 hz (56.5x slower)      | 2.94k hz (8.66x slower) |
+| 10k tight-loop `.value` reads        | 9.15k hz | 1.30k hz (7.02x slower)    | 9.09k hz (match)        |
+| 10k tight-loop forwarded-prop reads  | 1.87k hz | 1.21k hz (1.54x slower) \* | 1.82k hz (match) \*     |
 
 \* "Forwarded" here means `box.foo` for Box (transparent) or `box.value.foo` for FastBox.
 
-The tight-loop column shows the most useful real-world signal: **FastBox `.value` reads in a 10k loop match a raw class field exactly**, and **FastBox forwarded-prop reads through `.value` are within 5% of reading the inner `$state` proxy directly**. The Box equivalents are 1.5 to 5x slower because the Proxy fires on every iteration. Mitigation in either case is one line: hoist `box.value` once, then operate on the inner. The forwarded-prop read path saw a measurable improvement in v0.2.0 (~2.5x → 1.58x slower) after the proxy's own-key membership cache was extended to store negative lookups, so inner-object property reads no longer re-walk the prototype chain on every iteration.
+The tight-loop column shows the most useful real-world signal: **FastBox `.value` reads in a 10k loop match a raw class field exactly**, and **FastBox forwarded-prop reads through `.value` are within 5% of reading the inner `$state` proxy directly**. The Box equivalents are 1.5 to 7x slower because the Proxy fires on every iteration. Mitigation in either case is one line: hoist `box.value` once, then operate on the inner. The forwarded-prop read path saw a measurable improvement in v0.2.0 (~2.5x → ~1.5x slower) after the proxy's own-key membership cache was extended to store negative lookups, so inner-object property reads no longer re-walk the prototype chain on every iteration.
 
 ### What this means for a real app
 
-A 60Hz frame is 16 ms. To turn the cross-boundary 5 to 10% slowdown into a dropped frame, you would need on the order of **a hundred thousand cross-boundary mutations per frame**. Real components do dozens to low hundreds, so the cost is invisible.
+A 60Hz frame is 16 ms. To turn the cross-boundary 5 to 12% slowdown into a dropped frame, you would need on the order of **a hundred thousand cross-boundary mutations per frame**. Real components do dozens to low hundreds, so the cost is invisible.
 
 The two places Box is meaningfully slower:
 
-- **Construction** at ~3x. Box still constructs at ~240k instances per second in the bench, so a class-based store with 20 boxes at app boot costs roughly 85 microseconds. Negligible at boot, irrelevant for typical UIs, only worth thinking about if you allocate Boxes inside a render loop.
-- **Tight read loops** at ~5x for `.value` reads, ~1.6x for forwarded-prop reads. The only realistic hot path. Mitigation is one line: read `box.value` once before the loop, work with the inner.
+- **Construction** at ~3.7x. Box still constructs at ~190k instances per second in the bench, so a class-based store with 20 boxes at app boot costs roughly 100 microseconds. Negligible at boot, irrelevant for typical UIs, only worth thinking about if you allocate Boxes inside a render loop.
+- **Tight read loops** at ~7x for `.value` reads, ~1.5x for forwarded-prop reads. The only realistic hot path. Mitigation is one line: read `box.value` once before the loop, work with the inner.
 
 If your app is a typical UI (forms, lists with hundreds of items, interactive views), the difference does not register. If it does animation, large-list virtualization, or high-frequency simulation, profile and hoist on the hot path.
 
@@ -814,10 +814,10 @@ The const variants and `LazyBox` get their own bench files. Headline numbers (sa
 
 | Operation                                       | Result                                                        |
 | ----------------------------------------------- | ------------------------------------------------------------- |
-| `new ConstFastBox(value)` capture vs `new Box`  | ~1.5x **faster** (no proxy)                                   |
+| `new ConstFastBox(value)` capture vs `new Box`  | ~1.85x **faster** (no proxy)                                  |
 | `new ConstFastBox(otherBox)` borrow vs ConstBox | ~2x faster (no proxy on the borrowed handle either)           |
 | `.value` read on a borrowed const view          | match with reading the source directly                        |
-| `box.const()` vs `fastbox.const()`              | `fastbox.const()` ~1.5x faster (returns the no-proxy variant) |
+| `box.const()` vs `fastbox.const()`              | `fastbox.const()` ~2.3x faster (returns the no-proxy variant) |
 | `LazyBox.prefetch()` warm hit                   | match with a hand-rolled cached-promise pattern               |
 | `LazyBox.value` read on a cached promise        | match with raw `$state` read speed                            |
 
@@ -825,7 +825,7 @@ What this buys you: handing a child a read-only handle through `new ConstBox(sou
 
 ### Realistic patterns
 
-[benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) ships a `realistic patterns` section modeling what real apps do between renders: form-input echo per keystroke, a 1000-step cross-boundary counter loop, render fan-out (50 reads + 1 write per "frame"), an `isBox` API-boundary check, and constructing a list of 100 reactive items. The numbers match the tables above: FastBox tracks the baseline within noise; Box is ~5 to 20% slower on per-render hot paths and ~3 to 7x slower on construction-dominated loops.
+[benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) ships a `realistic patterns` section modeling what real apps do between renders: form-input echo per keystroke, a 1000-step cross-boundary counter loop, render fan-out (50 reads + 1 write per "frame"), an `isBox` API-boundary check, and constructing a list of 100 reactive items. The numbers match the tables above: FastBox tracks the baseline within noise; Box is ~5 to 30% slower on per-render hot paths and ~4 to 40x slower on construction-dominated loops.
 
 Run `npm run bench` to reproduce. Sources: [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts), [benchmarking/const.svelte.bench.ts](benchmarking/const.svelte.bench.ts), [benchmarking/lazy.svelte.bench.ts](benchmarking/lazy.svelte.bench.ts), [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts), [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts).
 
@@ -942,8 +942,8 @@ The repository ships:
 - A benchmark suite split across [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) (Box and FastBox core plus realistic patterns), [benchmarking/const.svelte.bench.ts](benchmarking/const.svelte.bench.ts) (ConstBox and ConstFastBox, capture and borrow), [benchmarking/lazy.svelte.bench.ts](benchmarking/lazy.svelte.bench.ts) (LazyBox prefetch cache), [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts), and [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts). Comparison baselines (raw `$state`, class with `$state` field, class accessor pair, `$state({ value })` wrapper, direct `SvelteMap`/`SvelteSet`, hand-rolled cached-promise) cover construction, reads, writes, forwarded property access, method calls, type guards, snapshot, eager, JSON.stringify, BoxedMap/Set operations, cross-boundary mutation, bulk stress paths, and the const/lazy variants.
 - A GitHub Actions CI pipeline that runs lint, type-check, build, and the test suite on every push to `master` and on every pull request. Tests run on Linux, macOS, and Windows via a matrix; a single `ci-all-greens` aggregator job is the required check for branch protection and reports success even when the pipeline is skipped because only docs changed.
 - A post-merge benchmark workflow that runs after pull requests touching `src/lib`, `benchmarking/`, or the workflow itself merge into `master`. Uploads results as artifacts and posts a summary comment on the merged PR for regression review.
-- A separate publish workflow that re-runs the full test suite, verifies the release tag is an ancestor of `master`, validates every transitive tarball's Sigstore signature (`npm audit signatures`), generates a CycloneDX SBOM, and publishes to npm via [Trusted Publisher (OIDC)](https://docs.npmjs.com/trusted-publishers) with provenance attestations. The SBOM is attached to each GitHub Release as a downloadable asset. No long-lived npm token is stored; publishes are gated behind a GitHub Environment with required approval, and the `v*` tag-protection ruleset blocks tag creation/deletion/force-push to non-admins.
-- A GitHub Pages workflow that redeploys the live demo at <https://isaiahcoroama.github.io/svelte-box/> after CI completes successfully on `master`, gated on the merge actually touching `src/`, `static/`, or a build config file. Docs-only merges skip the redeploy so the Pages site stays at the most recent bundle that actually changed.
+- A separate publish workflow that re-runs the full test suite, verifies the release tag is an ancestor of `master`, validates every transitive tarball's Sigstore signature (`npm audit signatures`), packs the tarball explicitly (`npm pack --ignore-scripts`), generates a CycloneDX SBOM, signs a SLSA build-provenance attestation over the packed bytes via `actions/attest-build-provenance`, and publishes to npm via [Trusted Publisher (OIDC)](https://docs.npmjs.com/trusted-publishers) with provenance attestations. The Sigstore bundle (`<tarball>.sigstore`) and the SBOM (`sbom.cdx.json`) are attached to each GitHub Release as downloadable assets alongside the tarball. No long-lived npm token is stored; publishes are gated behind a GitHub Environment with required approval, and the `v*` tag-protection ruleset blocks tag creation/deletion/force-push to non-admins.
+- A GitHub Pages workflow that serves a versioned playground site at <https://isaiahcoroama.github.io/svelte-box/>. The site root is a generated versions index; `latest/` redeploys after CI completes successfully on `master` (gated on the merge touching `src/`, `static/`, or a build config file). Every `v*` tag pushes its own playground build to `v<tag>/`, and the master deploy backfills any tags that do not yet have a subdir. Tag deploys are gated on the tag commit being an ancestor of `master`.
 - An OpenSSF Scorecard workflow that runs weekly and on every push to `master`, uploads SARIF to the repository's Security tab, and publishes results to the public Scorecard dashboard. The Scorecard badge at the top of this README links to the live results.
 
 Issues, contributions, and the changelog: <https://github.com/IsaiahCoroama/svelte-box>. The changelog follows the [Keep a Changelog](https://keepachangelog.com) format. Intended cadence is one entry per release; anything that changes the public surface (exports listed in this README, runtime behavior of those exports, or types of those exports) is called out under that release entry.

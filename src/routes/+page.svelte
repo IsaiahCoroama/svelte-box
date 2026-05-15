@@ -11,8 +11,7 @@
     <p>
         Proxy-backed. Transparent property forwarding (<code>box.foo</code> reads the inner object),
         callable when wrapping a function, <code>instanceof Box</code> through subclasses. Bottom of
-        the page shows <code>freeze</code>, <code>clone</code>, <code>const()</code>, and
-        <code>isBox</code>.
+        the page shows <code>clone</code>, <code>box.const()</code>, and <code>isBox</code>.
     </p>
 </section>
 
