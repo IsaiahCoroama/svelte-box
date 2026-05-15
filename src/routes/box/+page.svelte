@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Box, box, boxedMap, boxedSet } from '$lib/index.js';
+    import { Box, box, boxedMap, boxedSet, isBox } from '$lib/index.js';
 
     const count = new Box(0);
     const message = box('hello');
@@ -16,6 +16,35 @@
     function increment(b: Box<number>) {
         b.value += 1;
     }
+
+    // freeze / isFrozen / clone demo. Separate box so freezing it does not
+    // disturb the other sections.
+    const frozenable = box({ count: 0, label: 'fresh' });
+    let freezeError = $state<string | null>(null);
+    let cloned = $state<{ count: number; label: string } | null>(null);
+
+    function tryMutateAfterFreeze() {
+        freezeError = null;
+        try {
+            frozenable.count += 1;
+        } catch (err) {
+            freezeError = err instanceof Error ? err.message : String(err);
+        }
+    }
+
+    // const() snapshot demo. Bump `live`, take a snapshot, bump again, see
+    // that the snapshot held its value at call time.
+    const live = box(0);
+    let snapshot = $state<ReturnType<typeof live.const> | null>(null);
+
+    // isBox demo with mixed inputs.
+    const samples = [
+        ['box(0)', count, isBox(count)],
+        ['boxedSet([])', tags, isBox(tags)],
+        ['plain { value: 1 }', { value: 1 }, isBox({ value: 1 })],
+        ['42', 42, isBox(42)],
+        ['null', null, isBox(null)]
+    ] as const;
 </script>
 
 <h1>Box demo</h1>
@@ -68,3 +97,55 @@
     <p>greet is function: {greet.isFunction()}</p>
     <p>scores is map: {scores.isMap()}</p>
 </section>
+
+<section>
+    <h2><code>freeze()</code> / <code>isFrozen()</code> / <code>clone()</code></h2>
+    <p>value: {JSON.stringify(frozenable.value)}</p>
+    <p>isFrozen: {frozenable.isFrozen()}</p>
+    <button onclick={() => frozenable.count++}>count++</button>
+    <button onclick={() => frozenable.freeze()}>freeze</button>
+    <button onclick={tryMutateAfterFreeze}>mutate after freeze</button>
+    <button onclick={() => (cloned = frozenable.clone())}>clone()</button>
+    {#if freezeError}
+        <p style="color: var(--error)">TypeError: {freezeError}</p>
+    {/if}
+    {#if cloned}
+        <p>clone (plain, non-reactive): {JSON.stringify(cloned)}</p>
+    {/if}
+</section>
+
+<section>
+    <h2><code>box.const()</code> snapshot</h2>
+    <p>live: {live.value}</p>
+    <button onclick={() => live.value++}>live++</button>
+    <button onclick={() => (snapshot = live.const())}>snapshot live.const()</button>
+    {#if snapshot}
+        <p>snapshot taken at: {snapshot.value} (does not change when live++)</p>
+    {/if}
+</section>
+
+<section>
+    <h2><code>isBox</code></h2>
+    <table>
+        <thead>
+            <tr><th>input</th><th>isBox</th></tr>
+        </thead>
+        <tbody>
+            {#each samples as [label, _value, result] (label)}
+                <tr><td><code>{label}</code></td><td>{result}</td></tr>
+            {/each}
+        </tbody>
+    </table>
+</section>
+
+<style>
+    table {
+        border-collapse: collapse;
+    }
+    th,
+    td {
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--border-soft);
+        text-align: left;
+    }
+</style>
