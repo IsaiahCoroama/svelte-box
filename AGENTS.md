@@ -67,13 +67,13 @@ All library source under [src/lib/](src/lib/). Runtime split group related conce
 - [tests/properties/](tests/properties/) : property-based suite built on `fast-check` (devDep). Five files (`box`, `const`, `lazy`, `collections`, `util`) assert round-trip, `isBox` axioms, `LazyBox` cache-once, collection round-trip, mixin composition, util predicates. Same browser project; same `*.svelte.test.ts` discovery suffix.
 - [benchmarking/box.svelte.bench.ts](benchmarking/box.svelte.bench.ts) : benchmark suite for Box and FastBox. Most describe-blocks = three-way Baseline-vs-Box-vs-FastBox compare. Two `type guards (...)` groups omit Baseline because helpers Box-specific; rest (incl. forwarded-method groups) keep Baseline column.
 - [benchmarking/collections/map.svelte.bench.ts](benchmarking/collections/map.svelte.bench.ts) and [benchmarking/collections/set.svelte.bench.ts](benchmarking/collections/set.svelte.bench.ts) : collection bench groups (`Map.set`, `Map.get`, `Set.add`), split to mirror lib and test layout.
-- [src/routes/+layout.svelte](src/routes/+layout.svelte), [src/routes/+page.svelte](src/routes/+page.svelte), [src/routes/box/+page.svelte](src/routes/box/+page.svelte), [src/routes/fastbox/+page.svelte](src/routes/fastbox/+page.svelte) : SvelteKit playground. Dev-only, not part of published surface.
+- [src/routes/+layout.svelte](src/routes/+layout.svelte), [src/routes/+layout.ts](src/routes/+layout.ts), [src/routes/+page.svelte](src/routes/+page.svelte), [src/routes/box/+page.svelte](src/routes/box/+page.svelte), [src/routes/fastbox/+page.svelte](src/routes/fastbox/+page.svelte), [src/routes/const/+page.svelte](src/routes/const/+page.svelte), [src/routes/lazy/+page.svelte](src/routes/lazy/+page.svelte) : SvelteKit playground. Dev-only, not part of published surface. Layout owns the light/dark theme toggle.
 
 Split between `proxy/`, `fast/`, `collections/` **intentional for tree-shaking**. Import only `Box` not pull in `SvelteMap`/`SvelteSet`. Split `collections/` into `map.js` and `set.js` mean import only `boxedMap` not pull in `SvelteSet`. Do not fold back into single module.
 
 Split between `base.svelte.js`, `fast/box.js`, `proxy/box.js` also intentional. `BaseBox` = shared parent assembled from mixin chain. `FastBox` and `Box` only differ in constructors and chosen `Const*` variant. Mutating helpers live in `mixins.svelte.js` so new behavior added there once, picked up by every class on chain. Do not duplicate methods across subclasses.
 
-Mixin factories in `mixins.svelte.js` (`BoxGuardsMixin`, `BoxAccessorMixin`, `BoxSerializableMixin`, `BoxCloneableMixin`, plus composites `BoxAccessorMixin` and `BoxCommonMixin`) = seam new helper categories added to. `ConstFastBox` reuse `BoxGuardsMixin`, `BoxGetterMixin`, `BoxCommonMixin` to expose read-only side of API without inherit mutating accessors. d.ts side declare each mixin as type-only `class` (`BoxGuards`, `BoxGetter`, etc.); never instantiated at runtime, only used as `M` type argument to `BoxMixin<B, M>`. Variadic stacking also available through `BoxMixer(Base, ...factories)`, which `BaseBox` and `ConstFastBox` use; see `mixins.svelte.d.ts` JSDoc for per-step constraint trade-off.
+Mixin factories in `mixins.svelte.js` (`BoxGuardsMixin`, `BoxGetterMixin`, `BoxSetterMixin`, `BoxDeleterMixin`, `BoxSerializableMixin`, `BoxCloneableMixin`, plus composites `BoxAccessorMixin` and `BoxCommonMixin`) = seam new helper categories added to. `ConstFastBox` reuse `BoxGuardsMixin`, `BoxGetterMixin`, `BoxCommonMixin` to expose read-only side of API without inherit mutating accessors. d.ts side declare each mixin as type-only `class` (`BoxGuards`, `BoxGetter`, etc.); never instantiated at runtime, only used as `M` type argument to `BoxMixin<B, M>`. Variadic stacking also available through `BoxMixer(Base, ...factories)`, which `BaseBox` and `ConstFastBox` use; see `mixins.svelte.d.ts` JSDoc for per-step constraint trade-off.
 
 ### Why hand-written `.d.ts`
 
@@ -83,13 +83,13 @@ When rename or move runtime file, **rename `.d.ts` sibling same time**. Missing 
 
 ### Project invariant: every box inherits from `CoreBox`
 
-Every reactive container in this library, and every user-defined container layered on top, **must** inherit from `CoreBox`. `instanceof CoreBox` runtime check and `AnyBox<T>` type alias in [src/lib/core/core.svelte.d.ts](src/lib/core/core.svelte.d.ts) = only sanctioned ways to recognise a box generically; both depend on this invariant. Do not introduce parallel container hierarchy. New container variant either extend `CoreBox` directly (read-only), extend `MutCoreBox` (read-write), or extend existing user-facing class (`BaseBox`, `Box`, `FastBox`, `ConstBox`, `LazyBox`) that already inherit from `CoreBox`.
+Every reactive container in this library, and every user-defined container layered on top, **must** inherit from one of the two reactive-cell roots: `CoreBox` (deep `$state`) or `RawCoreBox` (`$state.raw`). `isBox(v)` and `AnyBox<T>` (declared in [src/lib/core/core.svelte.d.ts](src/lib/core/core.svelte.d.ts)) = only sanctioned ways to recognise a box generically; both depend on this invariant. Do not introduce parallel container hierarchy. New container variant either extend `CoreBox`/`RawCoreBox` directly (read-only), extend `MutCoreBox`/`RawMutCoreBox` (read-write), or extend existing user-facing class (`BaseBox`, `Box`, `FastBox`, `ConstBox`, `ConstFastBox`, `LazyBox`) that already inherit from a root.
 
 ### Class hierarchy
 
 Two reactive-cell roots in [core/core.svelte.js](src/lib/core/core.svelte.js):
 
-- `CoreBox<T>` and `MutCoreBox<T>` over deep `$state()` cell. `CoreBox` read-only (private `#value`, public getter); `MutCoreBox` add public setter via `[VALUE_SET]` symbol seam.
+- `CoreBox<T>` and `MutCoreBox<T>` over deep `$state()` cell. `CoreBox` read-only (private `#value`, public getter); `MutCoreBox` add public setter via `[SET_VALUE]` symbol seam.
 - `RawCoreBox<T>` and `RawMutCoreBox<T>` mirror pair over `$state.raw()` cell, for snapshot-style or opaque payloads where deep tracking unwanted.
 
 None re-exported from public barrel. `AnyBox<T>` = union; `isBox(v)` = runtime guard.

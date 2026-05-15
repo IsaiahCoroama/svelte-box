@@ -38,6 +38,13 @@ First minor release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the
 
 - **Release artifacts signed via Sigstore.** The publish workflow now packs the tarball explicitly with `npm pack --ignore-scripts`, generates a Sigstore build-provenance attestation over those bytes via `actions/attest-build-provenance@v4`, and attaches the resulting `.sigstore` bundle plus the SBOM to the GitHub Release alongside the tarball. Satisfies OpenSSF Scorecard's Signed-Releases check; npm-side provenance from `--provenance` remains in place.
 
+### Tooling and infrastructure
+
+- **Versioned GitHub Pages playground.** `pages.yml` now publishes each `v*` tag to its own `/<repo>/<tag>/` subpath, master to `/<repo>/latest/`, and regenerates a versions index at the site root after every deploy. The master deploy also backfills missing tag subdirs by checking out each tag in a detached worktree, building with the tag's own lockfile, and staging the result. Tag deploys are refused when the tag commit is not an ancestor of `master`. Replaces the previous single-bundle deploy.
+- **Pages bootstrap fixes** for the per-tag layout: `kit.paths.relative = false` so prerendered subpages emit absolute asset URLs (the previous relative URLs broke when a page lived more than one segment deep, e.g. `/<repo>/v0.3.0/box/`), and a `.nojekyll` is written at the gh-pages branch root so Jekyll does not strip `_app/` from any versioned subdir.
+- **Playground extended.** Two new routes (`/const`, `/lazy`) demonstrate `ConstBox`/`ConstFastBox` capture-vs-borrow modes and `LazyBox` cache-once semantics. The shared layout gained a light/dark theme toggle persisted in `localStorage`, with a pre-paint script in `app.html` to avoid the first-paint flash. Existing `/box` and `/fastbox` pages picked up `clone()` and `const()` sections.
+- **CodeQL workflow bumped to `github/codeql-action@v4`** (init and analyze steps) and the `pull_request` trigger had its `paths:` filter removed. OpenSSF Scorecard's SAST check inspects the most recent merged PRs for a CodeQL run, and a path filter that excluded most of them was reading as "no SAST". Push-side path filter and the weekly cron are retained.
+
 ### Internal
 
 - `CoreBox`, `MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`, the mixin factories (`BoxGuardsMixin`, `BoxAccessorMixin`, `BoxSerializableMixin`, `BoxCloneableMixin`, `BoxCommonMixin`, plus the constituent `BoxGetterMixin`/`BoxSetterMixin`/`BoxDeleterMixin`), the per-mixin type-only classes (`BoxGuards`, `BoxAccessor`, `BoxSerializable`, `BoxCloneable`, `BoxGetter`, `BoxSetter`, `BoxDeleter`), and `BoxMixer` are intentionally not re-exported from the public barrel. They are documented in `AGENTS.md` as the seam for adding new helper categories.
