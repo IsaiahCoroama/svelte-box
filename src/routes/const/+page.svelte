@@ -39,7 +39,7 @@
     const captured = constbox(initial);
     // Mutating `initial` after the fact does not affect `captured`
     // because the capture-mode constructor stores into a fresh internal
-    // cell (with $state.raw semantics — top-level reassignment only).
+    // cell (with $state.raw semantics: top-level reassignment only).
     // We show this by mutating `initial.age` and rendering both.
     let capturedSeesChange = $state(false);
     function mutateOriginal() {

@@ -94,7 +94,7 @@ describe('const primitive read (borrow)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Forwarded property access (ConstBox only — ConstFastBox has no proxy)
+// Forwarded property access (ConstBox only: ConstFastBox has no proxy)
 // ---------------------------------------------------------------------------
 
 describe('const forwarded prop read', () => {
