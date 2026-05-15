@@ -54,6 +54,7 @@ export default defineConfig(
                     allowDefaultProject: [
                         'src/lib/core/core.svelte.js',
                         'src/lib/core/base.svelte.js',
+                        'src/lib/core/mixins.svelte.js',
                         'src/lib/core/fast/const.svelte.js'
                     ]
                 },

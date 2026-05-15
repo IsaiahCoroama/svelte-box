@@ -58,14 +58,47 @@ export function BoxSerializableMixin(Base) {
     };
 }
 
+/**
+ * Mix `freeze()`, `isFrozen()`, and a frozen-aware `.value` setter onto
+ * `Base`. Freeze status is tracked on the wrapper rather than the inner
+ * value because Svelte 5's `$state` proxy refuses `Object.freeze`
+ * (`state_descriptors_fixed`). Once frozen:
+ *
+ * - `box.value = ...` throws `TypeError`.
+ * - For `Box` (proxy-wrapped), forwarded writes also throw because the
+ *   proxy traps call `self.isFrozen()`.
+ * - For `FastBox` and `ConstFastBox` (no wrapper proxy), inner-property
+ *   writes (`fb.value.x = ...`) are NOT blocked. Use `clone()` for a
+ *   detached mutable copy or `box.const()` for a reactive read-only
+ *   view if you need that boundary.
+ *
+ * The `#frozen` flag is `$state(...)` so reactive consumers of
+ * `box.isFrozen()` re-run when freeze flips.
+ */
 export function BoxFreezableMixin(Base) {
     return class extends Base {
+        #frozen = $state(false);
+
         freeze() {
-            Object.freeze(this.value);
+            this.#frozen = true;
             return this;
         }
+
         isFrozen() {
-            return Object.isFrozen(this.value);
+            return this.#frozen;
+        }
+
+        get value() {
+            return super.value;
+        }
+
+        set value(next) {
+            if (this.#frozen) {
+                throw new TypeError(
+                    'Box is frozen. Reassigning .value is not allowed after freeze().'
+                );
+            }
+            super.value = next;
         }
     };
 }

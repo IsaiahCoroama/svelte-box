@@ -103,14 +103,25 @@ export declare class BoxSerializable<T> {
 }
 
 /**
- * Freeze surface contributed by {@link BoxFreezableMixin}. Non-generic
- * because `Object.freeze` returns the same reference and the predicate
- * is value-shape-independent.
+ * Freeze surface contributed by {@link BoxFreezableMixin}. Flag-based:
+ * Svelte 5's `$state` proxy refuses `Object.freeze`, so the wrapper
+ * tracks frozen status on a reactive `$state(boolean)` field. After
+ * freeze, `box.value = ...`, `box.set(...)`, `box.del()`, and forwarded
+ * writes through the `Box` proxy throw `TypeError`. `FastBox` blocks
+ * `.value` reassignment but cannot intercept inner-property writes
+ * (`fb.value.x = ...`) because no proxy wraps it.
  */
 export declare class BoxFreezable {
-    /** Alias for `Object.freeze(box.value)`. Returns `this` for chaining. */
+    /**
+     * Mark the box read-only. Subsequent writes through `.value`,
+     * `set`, `del`, or forwarded properties throw `TypeError`. Returns
+     * `this` for chaining.
+     */
     freeze(): this;
-    /** True when `Object.isFrozen(box.value)`. */
+    /**
+     * Reactive boolean. `true` once {@link freeze} has been called.
+     * Effects reading this re-run on the transition.
+     */
     isFrozen(): boolean;
 }
 

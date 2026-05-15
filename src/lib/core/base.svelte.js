@@ -1,4 +1,4 @@
-import { BoxMixer, BoxAccessorMixin, BoxGuardsMixin, BoxCommonMixin } from './mixins.js';
+import { BoxMixer, BoxAccessorMixin, BoxGuardsMixin, BoxCommonMixin } from './mixins.svelte.js';
 import { MutCoreBox } from './core.svelte.js';
 
 const _Mixins = BoxMixer(MutCoreBox, BoxAccessorMixin, BoxGuardsMixin, BoxCommonMixin);
