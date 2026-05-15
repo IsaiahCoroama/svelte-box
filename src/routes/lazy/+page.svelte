@@ -49,8 +49,7 @@
 <p>
     <code>lazybox(loader)</code> defers until the first <code>prefetch()</code>. Later
     <code>prefetch()</code> calls return the cached promise (no second loader call) until
-    <code>reset()</code> clears it. Watch the loader counter: it only ticks up when the cache is
-    cold.
+    <code>reset()</code> clears it. Watch the loader counter: it only ticks up when the cache is cold.
 </p>
 
 <section>
@@ -95,12 +94,9 @@
     <h2><code>profile.value</code> directly</h2>
     <p>
         <code>profile.value</code> exposes the cached promise (or <code>null</code> after
-        <code>reset()</code>). Useful when you want to <code>await</code> it from outside the
-        template.
+        <code>reset()</code>). Useful when you want to <code>await</code> it from outside the template.
     </p>
-    <pre>{profile.value === null
-            ? 'null'
-            : 'Promise<Profile> (cached)'}</pre>
+    <pre>{profile.value === null ? 'null' : 'Promise<Profile> (cached)'}</pre>
 </section>
 
 <style>

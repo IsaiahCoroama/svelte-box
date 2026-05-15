@@ -10,8 +10,8 @@
     <h2><a href={resolve('/box')}>/box</a></h2>
     <p>
         Proxy-backed. Transparent property forwarding (<code>box.foo</code> reads the inner object),
-        callable when wrapping a function, <code>instanceof Box</code> through subclasses. Bottom
-        of the page shows <code>freeze</code>, <code>clone</code>, <code>const()</code>, and
+        callable when wrapping a function, <code>instanceof Box</code> through subclasses. Bottom of
+        the page shows <code>freeze</code>, <code>clone</code>, <code>const()</code>, and
         <code>isBox</code>.
     </p>
 </section>
@@ -29,8 +29,8 @@
     <h2><a href={resolve('/const')}>/const</a></h2>
     <p>
         Read-only views. <code>ConstBox</code> and <code>ConstFastBox</code> in both
-        <em>capture</em> mode (independent snapshot) and <em>borrow</em> mode (shared live state
-        with the source). Side-by-side mutation makes the difference visible.
+        <em>capture</em> mode (independent snapshot) and <em>borrow</em> mode (shared live state with
+        the source). Side-by-side mutation makes the difference visible.
     </p>
 </section>
 
@@ -38,7 +38,7 @@
     <h2><a href={resolve('/lazy')}>/lazy</a></h2>
     <p>
         Deferred-loader cell. The loader runs on the first <code>prefetch()</code>; later calls
-        return the cached promise until <code>reset()</code> clears it. The demo counts loader
-        invocations so the cache behavior is verifiable.
+        return the cached promise until <code>reset()</code> clears it. The demo counts loader invocations
+        so the cache behavior is verifiable.
     </p>
 </section>
