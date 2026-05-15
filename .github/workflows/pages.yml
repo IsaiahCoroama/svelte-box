@@ -222,6 +222,12 @@ jobs:
           rm -rf "gh-pages-wt/$DEST"
           mkdir -p "gh-pages-wt/$DEST"
           cp -a build/. "gh-pages-wt/$DEST/"
+          # Pages runs Jekyll on branch-served sites, which strips any
+          # `_app/` (and any other `_`-prefixed path). adapter-static
+          # already writes a `.nojekyll` inside the build output, but
+          # Pages only honors it at the branch root, not inside
+          # subdirs. Drop one at root so every subdir is unaffected.
+          touch gh-pages-wt/.nojekyll
 
       # Master deploy only: build and stage every `v*` tag that does
       # not already have a subdir on gh-pages. Each tag is built from
