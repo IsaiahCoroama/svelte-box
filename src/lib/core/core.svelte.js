@@ -1,104 +1,12 @@
-import { isFunction } from './utils.js';
-
-/** Mix the 14 type-guard methods onto `Base`. See `BoxGuards` in the d.ts. */
-export function BoxGuardsMixin(Base) {
-    return class extends Base {
-        isBoolean() {
-            return typeof this.value === 'boolean';
-        }
-        isNumber() {
-            return typeof this.value === 'number';
-        }
-        isString() {
-            return typeof this.value === 'string';
-        }
-        isBigInt() {
-            return typeof this.value === 'bigint';
-        }
-        isSymbol() {
-            return typeof this.value === 'symbol';
-        }
-        isUndefined() {
-            return this.value === undefined;
-        }
-        isNull() {
-            return this.value === null;
-        }
-        isNullish() {
-            return this.value == null;
-        }
-        isPrimitive() {
-            const t = typeof this.value;
-            return this.value == null || (t !== 'object' && t !== 'function');
-        }
-        isObject() {
-            return this.value !== null && typeof this.value === 'object';
-        }
-        isArray() {
-            return Array.isArray(this.value);
-        }
-        isFunction() {
-            return isFunction(this.value);
-        }
-        isMap() {
-            return this.value instanceof Map;
-        }
-        isSet() {
-            return this.value instanceof Set;
-        }
-    };
-}
-
-/** Mix `toJSON()` onto `Base` so `JSON.stringify(box)` returns the inner value. */
-export function BoxSerializableMixin(Base) {
-    return class extends Base {
-        toJSON() {
-            return this.value;
-        }
-    };
-}
-
-/** Mix the `get()` accessor onto `Base`. */
-export function BoxGetterMixin(Base) {
-    return class extends Base {
-        get() {
-            return this.value;
-        }
-    };
-}
-
-/** Mix the `set(value)` accessor onto `Base`. */
-export function BoxSetterMixin(Base) {
-    return class extends Base {
-        set(value) {
-            this.value = value;
-        }
-    };
-}
-
-/** Mix the `del()` accessor onto `Base`. Sets `value` to `undefined`. */
-export function BoxDeleterMixin(Base) {
-    return class extends Base {
-        del() {
-            this.value = undefined;
-        }
-    };
-}
-
-/** Compose getter, setter, and deleter mixins onto `Base`. */
-export function BoxAccessorMixin(Base) {
-    return BoxDeleterMixin(BoxSetterMixin(BoxGetterMixin(Base)));
-}
-
 /**
  * Subclass-friendly setter handle. Each root defines its own
- * `[VALUE_SET]` body so writes to the private `#value` field happen in
+ * `[SET_VALUE]` body so writes to the private `#value` field happen in
  * the class where the field is declared. Mutable subclasses dispatch
- * through `this[VALUE_SET]`, which prototype-resolves to the right
+ * through `this[SET_VALUE]`, which prototype-resolves to the right
  * parent. Symbol-keyed so it stays out of `for...in` / `Object.keys`
  * enumerations.
  */
-const VALUE_SET = Symbol('Box.value.set');
+const SET_VALUE = Symbol('Box.value.set');
 
 /**
  * Minimal deeply-reactive cell. Private `#value = $state()`, so
@@ -120,7 +28,7 @@ export class CoreBox {
         return this.#value;
     }
 
-    [VALUE_SET](next) {
+    [SET_VALUE](next) {
         this.#value = next;
     }
 }
@@ -141,7 +49,7 @@ export class MutCoreBox extends CoreBox {
     }
 
     set value(next) {
-        this[VALUE_SET](next);
+        this[SET_VALUE](next);
     }
 }
 
@@ -165,7 +73,7 @@ export class RawCoreBox {
         return this.#value;
     }
 
-    [VALUE_SET](next) {
+    [SET_VALUE](next) {
         this.#value = next;
     }
 }
@@ -182,7 +90,7 @@ export class RawMutCoreBox extends RawCoreBox {
     }
 
     set value(next) {
-        this[VALUE_SET](next);
+        this[SET_VALUE](next);
     }
 }
 

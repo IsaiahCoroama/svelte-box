@@ -1,12 +1,7 @@
-import {
-    BoxGetterMixin,
-    BoxGuardsMixin,
-    BoxSerializableMixin,
-    RawCoreBox,
-    isBox
-} from '../core.svelte.js';
+import { RawCoreBox, isBox } from '../core.svelte.js';
+import { BoxGetterMixin, BoxGuardsMixin, BoxCommonMixin, BoxMixer } from '../mixins.js';
 
-const _Mixins = BoxGuardsMixin(BoxSerializableMixin(BoxGetterMixin(RawCoreBox)));
+const _Mixins = BoxMixer(RawCoreBox, BoxGuardsMixin, BoxGetterMixin, BoxCommonMixin);
 
 /**
  * Read-only reactive view. Plain class, no Proxy. Reach inner-object

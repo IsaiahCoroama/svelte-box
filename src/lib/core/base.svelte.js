@@ -1,11 +1,7 @@
-import {
-    BoxAccessorMixin,
-    BoxGuardsMixin,
-    BoxSerializableMixin,
-    MutCoreBox
-} from './core.svelte.js';
+import { BoxMixer, BoxAccessorMixin, BoxGuardsMixin, BoxCommonMixin } from './mixins.js';
+import { MutCoreBox } from './core.svelte.js';
 
-const _Mixins = BoxGuardsMixin(BoxAccessorMixin(BoxSerializableMixin(MutCoreBox)));
+const _Mixins = BoxMixer(MutCoreBox, BoxAccessorMixin, BoxGuardsMixin, BoxCommonMixin);
 
 /**
  * Shared base for `Box` and `FastBox`. Mixes accessor, guard, and
