@@ -114,38 +114,6 @@ export function buildBoxProxy(self, opts = {}) {
         throw new TypeError(writeMessage);
     };
 
-    // Own-method binding cache. Methods on box prototypes (`freeze`,
-    // `set`, `isFrozen`, etc.) read private fields on `self`. Without
-    // binding, the proxy is the `this` at call time and private-field
-    // access throws `Cannot read private member ...`. Cached by prop so
-    // repeated reads return a stable reference.
-    /** @type {Map<string | symbol, { source: Function; fn: Function }>} */
-    const ownBindCache = new Map();
-    /**
-     * @param {string | symbol} prop
-     * @param {Function} fn
-     * @returns {Function}
-     */
-    function bindOwn(prop, fn) {
-        let bound = ownBindCache.get(prop);
-        if (!bound || bound.source !== fn) {
-            bound = { source: fn, fn: fn.bind(self) };
-            ownBindCache.set(prop, bound);
-        }
-        return bound.fn;
-    }
-
-    // Mutable boxes call `BoxFreezableMixin`'s `isFrozen()` to decide
-    // whether to refuse a write. Captured lazily because the mixin only
-    // attaches `isFrozen` to `self` once `BaseBox` has constructed.
-    const frozenCheck = () => {
-        if (typeof self.isFrozen === 'function' && self.isFrozen()) {
-            throw new TypeError(
-                'Box is frozen. Reassigning .value or forwarded properties is not allowed after freeze().'
-            );
-        }
-    };
-
     return new Proxy(PROXY_TARGET, {
         apply(_t, thisArg, args) {
             const inner = self.value;
@@ -166,10 +134,7 @@ export function buildBoxProxy(self, opts = {}) {
                 }
             }
 
-            if (isOwn(prop)) {
-                const v = Reflect.get(self, prop);
-                return typeof v === 'function' ? bindOwn(prop, v) : v;
-            }
+            if (isOwn(prop)) return Reflect.get(self, prop);
 
             const inner = self.value;
             if (!isObjectLike(inner)) return undefined;
@@ -179,7 +144,6 @@ export function buildBoxProxy(self, opts = {}) {
         set: readOnly
             ? throwReadOnly
             : (_t, prop, newValue) => {
-                  frozenCheck();
                   if (isOwn(prop)) {
                       Reflect.set(self, prop, newValue);
                       return true;
@@ -192,7 +156,6 @@ export function buildBoxProxy(self, opts = {}) {
         deleteProperty: readOnly
             ? throwReadOnly
             : (_t, prop) => {
-                  frozenCheck();
                   if (isOwn(prop)) {
                       throw new TypeError(`${deleteOwnMessage} (property: '${String(prop)}')`);
                   }
@@ -237,7 +200,6 @@ export function buildBoxProxy(self, opts = {}) {
         defineProperty: readOnly
             ? throwReadOnly
             : (_t, prop, desc) => {
-                  frozenCheck();
                   if (isOwn(prop)) return Reflect.defineProperty(self, prop, desc);
                   const inner = self.value;
                   if (!isObjectLike(inner)) return false;
