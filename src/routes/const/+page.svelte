@@ -68,8 +68,7 @@
 <h1>Const demo</h1>
 <p>
     Read-only reactive views of a value or another box. <code>ConstBox</code> wraps with a Proxy
-    (transparent forwarding, like <code>Box</code>); <code>ConstFastBox</code> is the plain
-    no-proxy sibling.
+    (transparent forwarding, like <code>Box</code>); <code>ConstFastBox</code> is the plain no-proxy sibling.
 </p>
 
 <section>
@@ -97,8 +96,8 @@
 <section>
     <h2>capture mode (independent snapshot)</h2>
     <p>
-        <code>constbox(value)</code> captures <code>value</code> into a fresh internal cell. Later
-        mutations of the original variable do not propagate.
+        <code>constbox(value)</code> captures <code>value</code> into a fresh internal cell. Later mutations
+        of the original variable do not propagate.
     </p>
     <p>captured.value: {JSON.stringify(captured.value)}</p>
     <p>original `initial.age`: {initial.age}</p>
@@ -113,8 +112,8 @@
 <section>
     <h2>const collection variants</h2>
     <p>
-        <code>constBoxedSet</code> and <code>constFastBoxedSet</code> freeze the reference but
-        leave the inner <code>SvelteSet</code> mutable through forwarded methods.
+        <code>constBoxedSet</code> and <code>constFastBoxedSet</code> freeze the reference but leave
+        the inner <code>SvelteSet</code> mutable through forwarded methods.
     </p>
     <p>constBoxedSet tags: {[...tags].join(', ')} (size: {tags.size})</p>
     <p>constFastBoxedSet tags: {[...fastTags.value].join(', ')} (size: {fastTags.value.size})</p>
