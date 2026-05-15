@@ -3,21 +3,6 @@ import { BoxGetterMixin, BoxGuardsMixin, BoxCommonMixin, BoxMixer } from '../mix
 
 const _Mixins = BoxMixer(RawCoreBox, BoxGuardsMixin, BoxGetterMixin, BoxCommonMixin);
 
-/**
- * Read-only reactive view. Plain class, no Proxy. Reach inner-object
- * properties through `.value`. Wraps a plain value (captured into a
- * fresh cell) or an existing {@link AnyBox} (shared state with the
- * source). Writes through `.value` throw `TypeError`.
- *
- * Read-only counterpart to `FastBox` with the same `.value`-only access
- * pattern. The proxied variant is {@link ConstBox}.
- *
- * Storage is `$state.raw` (inherited from {@link RawCoreBox}): capture
- * mode is a snapshot of reference, so external mutations of the
- * captured object are not amplified into reactive updates. Use borrow
- * mode (`new ConstFastBox(otherBox)`) for shared live reactivity, or
- * `fastbox.const()` for a snapshot from a `FastBox`.
- */
 export class ConstFastBox extends _Mixins {
     #borrowed;
 
@@ -52,7 +37,6 @@ export class ConstFastBox extends _Mixins {
     }
 }
 
-/** Borrow `initial` so the const view shares state with the source. */
 export function constfastbox(initial) {
     return new ConstFastBox(initial);
 }
