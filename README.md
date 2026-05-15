@@ -367,7 +367,7 @@ Read-only reactive view of a value. Inherits `get()`, `toJSON()`, and the 14 typ
 Two construction modes:
 
 - `new ConstBox(value)` captures `value` into a fresh internal cell. Subsequent reads of the original source do not propagate.
-- `new ConstBox(otherBox)` (where `otherBox` is a `CoreBox`, `BaseBox`, `Box`, or `FastBox`) shares state with the source, so the const view reads the live value but cannot mutate it. Hand this to a child that should observe but not mutate.
+- `new ConstBox(otherBox)` (where `otherBox` is any `AnyBox<T>`: `CoreBox`, `MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`, `BaseBox`, `Box`, `FastBox`, or another `ConstBox`/`ConstFastBox`) shares state with the source, so the const view reads the live value but cannot mutate it. Hand this to a child that should observe but not mutate.
 
 ```ts
 import { box, ConstBox, constbox } from '@coroama/svelte-box';
@@ -405,7 +405,7 @@ await profile.prefetch(); // loader runs again
 
 The loader signature is `() => T | Promise<T>`. A synchronous throw is converted to a rejected promise. A non-thenable return is wrapped in `Promise.resolve`. The cached value is the promise itself, so a single `prefetch()` can be awaited concurrently by multiple consumers without re-running the loader.
 
-`LazyBox` extends `CoreBox<Promise<T> | null>` directly and does not inherit the guard or accessor mixins. The only API is `prefetch()`, `reset()`, and the `.value` field.
+`LazyBox` extends `MutCoreBox<Promise<T> | null>` directly and does not inherit the guard or accessor mixins. The only API is `prefetch()`, `reset()`, and the `.value` field.
 
 ### `lazybox(loader)`
 
@@ -415,7 +415,6 @@ Factory equivalent to `new LazyBox(loader)`. Returns a `LazyBox<T>`.
 
 ```ts
 type Boxed<T>; // Box<T> with transparent forwarding
-type FastBoxed<T>; // @deprecated since 0.2.2, use FastBox<T> directly
 type BoxedMap<K, V>; // Boxed<SvelteMap<K, V>>
 type BoxedSet<T>; // Boxed<SvelteSet<T>>
 type FastBoxedMap<K, V>; // FastBox<SvelteMap<K, V>>
@@ -444,7 +443,7 @@ function rename(u: Box<{ name: string }>, name: string) {
 rename(user, 'Grace');
 ```
 
-`FastBoxed<T>` was a cosmetic alias for `FastBox<T>` (since `FastBox` does no proxy forwarding, there is no extra shape to project). It is **deprecated as of `0.2.2`** and will be removed in `0.3.0`. Use `FastBox<T>` at both factory return and parameter positions. The `fastbox(...)` factory and `FastBoxedMap` / `FastBoxedSet` types now resolve to `FastBox<T>` directly.
+`FastBox<T>` is the only public name on the no-proxy side. `fastbox(...)`, `FastBoxedMap`, and `FastBoxedSet` all return or resolve to `FastBox<T>` directly. (The `FastBoxed<T>` alias deprecated in `0.2.2` is removed in `0.3.0`. Migration: rename to `FastBox<T>`; the two were assignment-compatible.)
 
 ## Patterns and pitfalls
 
