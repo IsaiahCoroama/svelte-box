@@ -1,5 +1,5 @@
 import { RawCoreBox, isBox } from '../core.svelte.js';
-import { BoxGetterMixin, BoxGuardsMixin, BoxCommonMixin, BoxMixer } from '../mixins.js';
+import { BoxGetterMixin, BoxGuardsMixin, BoxCommonMixin, BoxMixer } from '../mixins.svelte.js';
 
 const _Mixins = BoxMixer(RawCoreBox, BoxGuardsMixin, BoxGetterMixin, BoxCommonMixin);
 

@@ -1,4 +1,4 @@
-import type { BoxAccessor, BoxGuards, BoxCommonMixins } from './mixins.js';
+import type { BoxAccessor, BoxGuards, BoxCommonMixins } from './mixins.svelte.js';
 import type { MutCoreBox } from './core.svelte.js';
 import type { Snapshot } from 'svelte';
 

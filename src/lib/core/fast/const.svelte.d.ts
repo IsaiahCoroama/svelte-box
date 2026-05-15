@@ -1,6 +1,6 @@
 import type { Snapshot } from 'svelte';
 import type { AnyBox, RawCoreBox } from '../core.svelte.js';
-import type { BoxGetter, BoxGuards, BoxCommonMixins } from '../mixins.js';
+import type { BoxGetter, BoxGuards, BoxCommonMixins } from '../mixins.svelte.js';
 
 // Synthetic constructor for the assembled mixin chain.
 type _Mixins<T> = RawCoreBox<T> & BoxGetter<T> & BoxGuards & BoxCommonMixins<T>;
