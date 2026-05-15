@@ -39,8 +39,10 @@ import type { ConstFastBox } from './const.svelte.js';
  */
 export declare class FastBox<T> extends BaseBox<T> {
     /**
-     * Read-only plain {@link ConstFastBox} capturing the current value.
-     * No proxy: reach inner-object properties through `.value`.
+     * Read-only plain {@link ConstFastBox} borrowing this cell so the
+     * view stays reactive to source updates. Lets a `FastBox` pass where
+     * a `ConstFastBox` is required without giving up reactivity. No
+     * proxy: reach inner-object properties through `.value`.
      */
     const(): ConstFastBox<T>;
 }

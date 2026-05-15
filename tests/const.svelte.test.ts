@@ -78,13 +78,13 @@ describe('ConstBox: reactivity', () => {
         cleanup();
     });
 
-    it('Box.const() captures an independent value', () => {
+    it('Box.const() borrows the source so the view stays reactive', () => {
         const src = box(10);
         const view = src.const();
         expect(view.value).toBe(10);
 
         src.value = 20;
-        expect(view.value).toBe(10);
+        expect(view.value).toBe(20);
     });
 
     it('Box.const() returns a proxy-backed ConstBox', () => {

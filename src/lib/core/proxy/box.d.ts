@@ -86,8 +86,10 @@ export type Boxed<T> = Box<T> & Forwarded<T>;
  */
 export declare class Box<T> extends BaseBox<T> {
     /**
-     * Read-only proxy-backed {@link ConstBoxed} capturing the current
-     * value. Preserves transparent forwarding on the const view.
+     * Read-only proxy-backed {@link ConstBoxed} borrowing this cell so
+     * the view stays reactive to source updates. Lets a `Box` pass where
+     * a `ConstBox` is required without giving up reactivity. Preserves
+     * transparent forwarding on the const view.
      */
     const(): ConstBoxed<T>;
 }
