@@ -1,75 +1,79 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <link rel="icon" href="./favicon.svg" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="text-scale" content="scale" />
-        <link href="./_app/immutable/entry/start.CbSfEhNp.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/Dhq6SllP.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/Bz-ab62C.js" rel="modulepreload">
-		<link href="./_app/immutable/entry/app.DmgbuV2D.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/B0BvW1x3.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/Cfug8aQt.js" rel="modulepreload">
-		<link href="./_app/immutable/nodes/0.DMRi8y1n.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/0MC2m6vY.js" rel="modulepreload">
-		<link href="./_app/immutable/nodes/2.Bz7AVoaW.js" rel="modulepreload">
-		
-		<link href="./_app/immutable/assets/0.CzMNgHdW.css" rel="stylesheet">
-        <script>
-            // Pre-paint theme bootstrap. Reads the persisted choice
-            // (or prefers-color-scheme as a fallback) and applies it
-            // before the stylesheet renders so the page does not flash
-            // the wrong theme. Wrapped in try because localStorage
-            // throws in some privacy modes.
-            (function () {
-                try {
-                    let stored = localStorage.getItem('svelte-box-theme');
-                    let prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-                    document.documentElement.dataset.theme =
-                        stored === 'dark' || stored === 'light'
-                            ? stored
-                            : prefersDark
-                              ? 'dark'
-                              : 'light';
-                } catch (e) {
-                    document.documentElement.dataset.theme = 'light';
-                }
-            })();
-        </script>
-    </head>
-    <body data-sveltekit-preload-data="hover">
-        <div style="display: contents"><!--[--><!--[0--><!--[--><header class="svelte-12qhfyh"><a href="./" class="svelte-12qhfyh active">home</a> <a href="./box" class="svelte-12qhfyh">box</a> <a href="./fastbox" class="svelte-12qhfyh">fastbox</a> <a href="./const" class="svelte-12qhfyh">const</a> <a href="./lazy" class="svelte-12qhfyh">lazy</a> <button class="theme-toggle svelte-12qhfyh" aria-label="Switch to dark mode" title="Switch to dark mode"><!--[-1--><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="svelte-12qhfyh"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><!--]--></button></header> <main class="svelte-12qhfyh"><!--[--><h1>svelte-box playground</h1> <p>Five live demos. Each page focuses on one container so the behavior is easy to read.</p> <section><h2><a href="./box">/box</a></h2> <p>Proxy-backed. Transparent property forwarding (<code>box.foo</code> reads the inner object),
-        callable when wrapping a function, <code>instanceof Box</code> through subclasses. Bottom of
-        the page shows <code>freeze</code>, <code>clone</code>, <code>const()</code>, and <code>isBox</code>.</p></section> <section><h2><a href="./fastbox">/fastbox</a></h2> <p>Plain class, no proxy. Same <code>.value</code> reactivity, same helpers and type guards.
-        Faster to construct, no transparent forwarding. Reach inner properties through <code>.value</code>.</p></section> <section><h2><a href="./const">/const</a></h2> <p>Read-only views. <code>ConstBox</code> and <code>ConstFastBox</code> in both <em>capture</em> mode (independent snapshot) and <em>borrow</em> mode (shared live state with
-        the source). Side-by-side mutation makes the difference visible.</p></section> <section><h2><a href="./lazy">/lazy</a></h2> <p>Deferred-loader cell. The loader runs on the first <code>prefetch()</code>; later calls
-        return the cached promise until <code>reset()</code> clears it. The demo counts loader invocations
-        so the cache behavior is verifiable.</p></section><!--]--><!----></main><!--]--><!--]--> <!--[-1--><!--]--><!--]-->
-			
-			<script>
-				{
-					__sveltekit_1ikdcq = {
-						base: new URL(".", location).pathname.slice(0, -1),
-						assets: "/svelte-box"
-					};
-
-					const element = document.currentScript.parentElement;
-
-					Promise.all([
-						import("./_app/immutable/entry/start.CbSfEhNp.js"),
-						import("./_app/immutable/entry/app.DmgbuV2D.js")
-					]).then(([kit, app]) => {
-						kit.start(app, element, {
-							node_ids: [0, 2],
-							data: [null,null],
-							form: null,
-							error: null
-						});
-					});
-				}
-			</script>
-		</div>
-    </body>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>svelte-box demos</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --fg: #111111;
+            --muted: #555555;
+            --border: #eeeeee;
+            --surface: #fafafa;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f0f10;
+                --fg: #ececec;
+                --muted: #a0a0a0;
+                --border: #1f1f21;
+                --surface: #18181a;
+            }
+        }
+        html, body { background: var(--bg); color: var(--fg); }
+        body {
+            margin: 0;
+            padding: 2rem 1.5rem;
+            max-width: 720px;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+        }
+        h1 { margin-top: 0; }
+        ul { list-style: none; padding: 0; }
+        li {
+            padding: 0.6rem 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            background: var(--surface);
+            display: flex;
+            align-items: baseline;
+            gap: 0.6rem;
+        }
+        a {
+            color: var(--fg);
+            text-decoration: none;
+            font-weight: 600;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        a:hover { text-decoration: underline; }
+        .tag {
+            font-size: 0.78rem;
+            padding: 0.05rem 0.4rem;
+            border-radius: 999px;
+            background: var(--border);
+            color: var(--muted);
+        }
+        footer {
+            margin-top: 2rem;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>svelte-box demos</h1>
+    <p>Every deployed version of the SvelteKit playground. <code>latest</code> tracks <code>master</code>; <code>v*</code> entries are pinned to release tags.</p>
+    <ul>
+        <li><a href="./latest/">/latest/</a><span class="tag">latest (master)</span></li>
+        <li><a href="./v0.2.2-rc.1/">/v0.2.2-rc.1/</a><span class="tag">v0.2.2-rc.1</span></li>
+        <li><a href="./v0.2.2-rc.0/">/v0.2.2-rc.0/</a><span class="tag">v0.2.2-rc.0</span></li>
+        <li><a href="./v0.2.2/">/v0.2.2/</a><span class="tag">v0.2.2</span></li>
+        <li><a href="./v0.2.1/">/v0.2.1/</a><span class="tag">v0.2.1</span></li>
+        <li><a href="./v0.2.0-rc.0/">/v0.2.0-rc.0/</a><span class="tag">v0.2.0-rc.0</span></li>
+        <li><a href="./v0.2.0/">/v0.2.0/</a><span class="tag">v0.2.0</span></li>
+        <li><a href="./v0.1.0/">/v0.1.0/</a><span class="tag">v0.1.0</span></li>
+    </ul>
+    <footer>Generated 2026-05-15 20:46:34 UTC.</footer>
+</body>
 </html>

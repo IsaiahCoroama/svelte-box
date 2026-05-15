@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" href="../favicon.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="text-scale" content="scale" />
+        <link href="../_app/immutable/entry/start.CBdrDe0O.js" rel="modulepreload">
+		<link href="../_app/immutable/chunks/DREGyuvs.js" rel="modulepreload">
+		<link href="../_app/immutable/chunks/Cb713jTS.js" rel="modulepreload">
+		<link href="../_app/immutable/entry/app.CDnxmupF.js" rel="modulepreload">
+		<link href="../_app/immutable/chunks/CHncfsjL.js" rel="modulepreload">
+		<link href="../_app/immutable/chunks/D1hYfEew.js" rel="modulepreload">
+		<link href="../_app/immutable/nodes/0.AW3S-Je7.js" rel="modulepreload">
+		<link href="../_app/immutable/chunks/DCJFnV-Z.js" rel="modulepreload">
+		<link href="../_app/immutable/nodes/4.Cun5aWQV.js" rel="modulepreload">
+		<link href="../_app/immutable/chunks/BIX1dfEw.js" rel="modulepreload">
+		
+		<link href="../_app/immutable/assets/0.DyYu5V-p.css" rel="stylesheet">
+    </head>
+    <body data-sveltekit-preload-data="hover">
+        <div style="display: contents"><!--[--><!--[0--><!--[--><header class="svelte-12qhfyh"><a href="../" class="svelte-12qhfyh">home</a> <a href="../box" class="svelte-12qhfyh">box</a> <a href="../fastbox" class="svelte-12qhfyh active">fastbox</a></header> <main class="svelte-12qhfyh"><!--[--><h1>FastBox demo</h1> <p>No proxy. Inner properties and methods are reached through <code>.value</code>.</p> <section><h2>primitive box</h2> <button>count: 0</button> <input value="hello"/> <p>message: hello</p></section> <section><h2>object box (no forwarding)</h2> <p>name: Ada | age: 36</p> <button>age++</button></section> <section><h2>array box</h2> <p>list: 1, 2, 3 (len: 3)</p> <button>push</button></section> <section><h2>function box (call through .value)</h2> <p>hi, world</p></section> <section><h2>fastBoxedMap (SvelteMap)</h2> <p>scores size: 2</p> <!--[--><p>ada: 100</p><p>ben: 80</p><!--]--> <button>add cyd</button></section> <section><h2>fastBoxedSet (SvelteSet)</h2> <p>tags: svelte, reactive (size: 2)</p> <button>add tag</button></section> <section><h2>type guards</h2> <p>count is number: true</p> <p>user is object: true</p> <p>list is array: true</p> <p>greet is function: true</p> <p>scores is map: true</p></section><!--]--><!----></main><!--]--><!--]--> <!--[-1--><!--]--><!--]-->
+			
+			<script>
+				{
+					__sveltekit_k8zbb3 = {
+						base: new URL("..", location).pathname.slice(0, -1),
+						assets: "/svelte-box/v0.2.2-rc.0"
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("../_app/immutable/entry/start.CBdrDe0O.js"),
+						import("../_app/immutable/entry/app.CDnxmupF.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element, {
+							node_ids: [0, 4],
+							data: [null,null],
+							form: null,
+							error: null
+						});
+					});
+				}
+			</script>
+		</div>
+    </body>
+</html>
