@@ -7,7 +7,7 @@ import { ConstFastBox } from '../fast/const.svelte.js';
  * write attempts via the proxy throw `TypeError`), primitives keep only
  * the `ConstBox` surface.
  */
-type ConstForwarded<T> = T extends (...args: infer A) => infer R
+type Forwarded<T> = T extends (...args: infer A) => infer R
     ? (...args: A) => R
     : T extends object
       ? Readonly<T>
@@ -21,7 +21,7 @@ type ConstForwarded<T> = T extends (...args: infer A) => infer R
  * `ConstBox<T>` is the bare class; `ConstBoxed<T>` is what the
  * `constbox(...)` factory and `box.const()` return.
  */
-export type ConstBoxed<T> = ConstBox<T> & ConstForwarded<T>;
+export type ConstBoxed<T> = ConstBox<T> & Forwarded<T>;
 
 /**
  * Read-only reactive view with transparent property forwarding.
