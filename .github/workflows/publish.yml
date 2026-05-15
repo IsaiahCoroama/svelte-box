@@ -19,8 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: npm-publish
     permissions:
-      contents: write # required to attach SBOM to the GitHub Release
-      id-token: write
+      contents: write # required to attach release assets
+      id-token: write # OIDC for npm provenance and Sigstore signing
+      attestations: write # generate the GitHub-native build attestation
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -87,6 +88,18 @@ jobs:
 
       - run: bun run prepack
 
+      # Pack explicitly so the attestation and the published tarball
+      # reference the same bytes. `--ignore-scripts` because the
+      # `bun run prepack` step above already ran the lifecycle; without
+      # it npm would re-run `prepack` here.
+      - name: Pack tarball
+        id: pack
+        run: |
+          set -euo pipefail
+          TARBALL=$(npm pack --ignore-scripts --json | jq -r '.[0].filename')
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+          ls -la "$TARBALL"
+
       - name: Generate SBOM (CycloneDX)
         id: sbom
         # `cdxgen` parses `bun.lock` directly. The previous tool
@@ -95,22 +108,46 @@ jobs:
         run: npx --yes @cyclonedx/cdxgen@12 -o sbom.cdx.json -t bun .
         continue-on-error: true
 
+      # Sigstore-signed SLSA build provenance for the exact tarball.
+      # The bundle is what Scorecard's Signed-Releases check matches
+      # (extensions `.sigstore` or `.intoto.jsonl`). `--provenance`
+      # below covers the npm side; this covers the GitHub Release.
+      - name: Generate build provenance attestation
+        id: attest
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
+        with:
+          subject-path: ${{ steps.pack.outputs.tarball }}
+
+      - name: Stage signed bundle for release upload
+        run: cp "${{ steps.attest.outputs.bundle-path }}" "${{ steps.pack.outputs.tarball }}.sigstore"
+
       - name: Publish to npm
         # Pre-releases (hyphen in version, e.g. 0.2.0-rc.0) ship to
-        # `next` dist-tag. Finals ship to `latest`.
+        # `next` dist-tag. Finals ship to `latest`. Publishing from
+        # the pre-packed tarball guarantees the attestation above
+        # describes the exact same bytes npm receives.
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           if [[ "$PKG_VERSION" == *-* ]]; then
             echo "Pre-release detected ($PKG_VERSION) -> publishing under dist-tag 'next'"
-            npm publish --provenance --access public --tag next
+            npm publish "$TARBALL" --provenance --access public --tag next
           else
             echo "Final release ($PKG_VERSION) -> publishing under dist-tag 'latest'"
-            npm publish --provenance --access public
+            npm publish "$TARBALL" --provenance --access public
           fi
 
-      - name: Attach SBOM to the GitHub Release
-        # Skipped silently if SBOM step failed (continue-on-error)
-        if: hashFiles('sbom.cdx.json') != ''
+      - name: Attach signed tarball, bundle, and SBOM to the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${GITHUB_REF_NAME}" sbom.cdx.json --clobber
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          set -euo pipefail
+          UPLOADS=("$TARBALL" "$TARBALL.sigstore")
+          # SBOM is best-effort (continue-on-error above); include it
+          # only if cdxgen actually produced the file.
+          if [[ -f sbom.cdx.json ]]; then
+            UPLOADS+=("sbom.cdx.json")
+          fi
+          gh release upload "$GITHUB_REF_NAME" "${UPLOADS[@]}" --clobber
