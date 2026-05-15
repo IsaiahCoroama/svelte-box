@@ -21,7 +21,13 @@ const config = {
             fallback: '404.html',
             strict: true
         }),
-        paths: { base }
+        // `relative: false` emits asset URLs as `${base}/_app/...`
+        // rather than `./_app/...`. The relative form (SvelteKit 2's
+        // default) breaks on prerendered subpages with
+        // `trailingSlash: 'always'` because the browser resolves
+        // `./_app/...` against the subpage's directory, not against
+        // the site root.
+        paths: { base, relative: false }
     }
 };
 
