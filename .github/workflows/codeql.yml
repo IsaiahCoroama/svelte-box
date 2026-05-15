@@ -1,11 +1,15 @@
 name: CodeQL
 
-# Path filter skips docs-only changes. Weekly cron is the safety net for
-# advisories disclosed after the last code-touching merge.
+# Push-side path filter skips docs-only edits to master. Pull requests
+# run CodeQL unconditionally because Scorecard's SAST check inspects
+# the ~30 most recent merged PRs for a CodeQL run; a path filter that
+# excluded most of those PRs reads as "no SAST" and dropped the score.
+# Weekly cron is the safety net for advisories disclosed after the
+# last code-touching merge.
 on:
   push:
     branches: [master]
-    paths: &codeql-paths
+    paths:
       - 'src/**'
       - 'tests/**'
       - 'benchmarking/**'
@@ -19,7 +23,6 @@ on:
       - '.github/workflows/codeql.yml'
   pull_request:
     branches: [master]
-    paths: *codeql-paths
   schedule:
     - cron: '00 20 * * 1'
 
