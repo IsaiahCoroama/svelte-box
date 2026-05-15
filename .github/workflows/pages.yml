@@ -1,47 +1,64 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Deploy GitHub Pages
 
-# Deploy gated on CI success on master so a broken push cannot ship.
-# `workflow_dispatch` stays for manual redeploys (rollback, settings).
+# SECURITY (gh-pages write): the deploy job has `contents: write` to
+# push to the `gh-pages` branch. Triggers are limited to CI-gated
+# `workflow_run` on master, `v*` tag pushes (require maintainer push
+# access AND must point at a commit already on master, enforced below),
+# and manual dispatch. No `pull_request` trigger -- a fork PR cannot
+# reach this workflow. Every `${{ github.* }}` expansion that lands in
+# a `run:` block goes through `env:` indirection so a future policy
+# change cannot inject shell. Must NOT add any trigger that runs on
+# untrusted code (`pull_request`, `issue_comment`, etc.) without first
+# isolating the build from the deploy step.
+
+# Two deploy modes share one workflow:
+# - master push (via `workflow_run` on CI success): publishes the
+#   latest playground to `/`, preserves every `v*` subdirectory.
+# - `v*` tag push: publishes the playground built from that tag to
+#   `/v<tag>/`, preserves the root and every other subdirectory.
+#
+# Pages source must be configured in repo Settings -> Pages -> Source =
+# "Deploy from a branch", branch = `gh-pages`, folder = `/ (root)`.
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
     branches: [master]
+  push:
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# `cancel-in-progress: false` so a half-deployed site is never published.
+# Serialize all writes to gh-pages so a master deploy and a tag deploy
+# cannot race on the branch tip. `cancel-in-progress: false` keeps a
+# half-pushed tree from ever being published.
 concurrency:
-  group: pages
+  group: gh-pages-write
   cancel-in-progress: false
 
 jobs:
   changes:
     name: Detect deployable changes
+    # Only the workflow_run path needs the diff heuristic; tag and
+    # workflow_dispatch deploy unconditionally and skip this job.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    # workflow_dispatch context has no workflow_run.conclusion; the OR
-    # passes it through.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 5
     outputs:
       deploy: ${{ steps.detect.outputs.deploy }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
-          # HEAD~1 reachable for diff against previous master commit
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 2
 
       - name: Compare head against previous master commit
         id: detect
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "Manual dispatch -> deploy"
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          set -euo pipefail
           # Defensive on shallow history (orphan branch, force push, first commit)
           if ! git rev-parse HEAD~1 >/dev/null 2>&1; then
             echo "No previous commit reachable, deploying defensively"
@@ -63,17 +80,48 @@ jobs:
           echo "deploy=$DEPLOY" >> "$GITHUB_OUTPUT"
           echo "Result: deploy=$DEPLOY"
 
-  build:
-    name: Build playground
+  deploy:
+    name: Build and publish to gh-pages
     needs: changes
-    if: needs.changes.outputs.deploy == 'true'
+    # `always()` is required because the tag-push and dispatch paths
+    # leave `needs.changes.result == 'skipped'`, which would otherwise
+    # short-circuit this job.
+    if: |
+      always() && (
+        (github.event_name == 'workflow_run' && needs.changes.result == 'success' && needs.changes.outputs.deploy == 'true') ||
+        (github.event_name == 'push' && github.ref_type == 'tag') ||
+        github.event_name == 'workflow_dispatch'
+      )
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # commit and push to gh-pages branch
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          # workflow_run defaults to workflow's default branch; pin to
-          # the CI head SHA so we deploy what was tested
+          # Pin to the CI head SHA so we deploy what was tested. For
+          # tag pushes the fallback resolves to the tag commit.
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          # Full history so we can `merge-base` the tag commit against
+          # master and resolve `gh-pages` without a second fetch.
+          fetch-depth: 0
+
+      # Enforce "tags must come from master". The master deploy path
+      # is already CI-gated via `workflow_run`; without this, a tag
+      # placed on an off-master commit could publish a `/vX.Y.Z/` demo
+      # that never passed CI.
+      - name: Verify tag commit is on master
+        if: github.ref_type == 'tag'
+        env:
+          TAG_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin master --quiet
+          if ! git merge-base --is-ancestor "$TAG_SHA" origin/master; then
+            echo "::error::Tag commit $TAG_SHA is not an ancestor of master; refusing to deploy"
+            exit 1
+          fi
+          echo "Tag commit is on master."
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -81,33 +129,235 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      # Tag-push and workflow_dispatch skip the `workflow_run` CI
+      # dependency, so re-run the same audit `bun run lint` does.
+      - name: Audit dependencies
+        run: bun audit --audit-level=high
+
       # Defensive in case `prepare` is removed from package.json
       - run: bunx svelte-kit sync
 
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Resolve deploy target
+        id: target
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            # Rule out tag schemes like `release-1` that would land at
+            # an unexpected path. Git's own ref-name restrictions are
+            # not enough since `release-1` is a valid ref.
+            case "$REF_NAME" in
+              v[0-9]*) ;;
+              *)
+                echo "::error::Tag '$REF_NAME' does not match expected v* shape"
+                exit 1
+                ;;
+            esac
+            echo "destination=$REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "label=$REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "base_path=/$REPO_NAME/$REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "destination=." >> "$GITHUB_OUTPUT"
+            echo "label=latest" >> "$GITHUB_OUTPUT"
+            echo "base_path=/$REPO_NAME" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build static site
         env:
-          # svelte.config.js reads BASE_PATH to set kit.paths.base
-          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          # svelte.config.js reads BASE_PATH to set kit.paths.base. The
+          # value is baked into `build/` once and must match the URL
+          # the artifact ends up served from.
+          BASE_PATH: ${{ steps.target.outputs.base_path }}
         run: bun run build:app
 
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: build/
+      # An empty `build/` would otherwise be staged at root and wipe
+      # the live `/` page. (`v*` subdirs would survive; `/` would go
+      # dark.) Refuse early instead.
+      - name: Verify build output
+        run: |
+          set -euo pipefail
+          if [[ ! -s build/index.html ]]; then
+            echo "::error::Build produced no (or empty) index.html"
+            exit 1
+          fi
 
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write # deploy artifact to Pages
-      id-token: write # OIDC for actions/deploy-pages
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+      - name: Prepare gh-pages worktree
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Distinguish "branch genuinely missing" from "fetch failed",
+          # because the orphan-init path destroys whatever is on origin.
+          if git ls-remote --exit-code origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages:gh-pages
+            git worktree add gh-pages-wt gh-pages
+          else
+            echo "gh-pages does not exist on origin; orphan-init"
+            git worktree add --orphan -b gh-pages gh-pages-wt
+            git -C gh-pages-wt commit --allow-empty -m "Init gh-pages"
+          fi
+
+      - name: Stage versioned content
+        env:
+          DEST: ${{ steps.target.outputs.destination }}
+        run: |
+          set -euo pipefail
+          if [[ "$DEST" == "." ]]; then
+            # Master: replace root files; preserve v* subdirs and any
+            # sentinel files committed directly to gh-pages (e.g. CNAME).
+            find gh-pages-wt -maxdepth 1 -mindepth 1 \
+              ! -name '.git' \
+              ! -name 'v*' \
+              ! -name 'CNAME' \
+              -exec rm -rf {} +
+            # `build/.` (trailing dot) copies contents into the dest
+            # rather than nesting a `build` directory inside it.
+            cp -a build/. gh-pages-wt/
+          else
+            rm -rf "gh-pages-wt/$DEST"
+            mkdir -p "gh-pages-wt/$DEST"
+            cp -a build/. "gh-pages-wt/$DEST/"
+          fi
+
+      - name: Generate versions index
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          cd gh-pages-wt
+          # Git ref names legally allow `&`, `<`, `>`; escape before
+          # interpolating into the rendered page.
+          esc() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
+          }
+          ESC_REPO=$(esc "$REPO_NAME")
+          # `sort -V -r` orders SemVer-ish tags newest first.
+          # Pre-release suffixes (`-rc.0`, `-beta.1`) sort before the
+          # matching final release, which is conventional.
+          TAGS=$(find . -maxdepth 1 -mindepth 1 -type d -name 'v*' -printf '%f\n' | sort -V -r || true)
+          GENERATED_AT=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          {
+            cat <<HTML
+          <!doctype html>
+          <html lang="en">
+          <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>$ESC_REPO demos</title>
+              <style>
+                  :root {
+                      --bg: #ffffff;
+                      --fg: #111111;
+                      --muted: #555555;
+                      --border: #eeeeee;
+                      --surface: #fafafa;
+                  }
+                  @media (prefers-color-scheme: dark) {
+                      :root {
+                          --bg: #0f0f10;
+                          --fg: #ececec;
+                          --muted: #a0a0a0;
+                          --border: #1f1f21;
+                          --surface: #18181a;
+                      }
+                  }
+                  html, body { background: var(--bg); color: var(--fg); }
+                  body {
+                      margin: 0;
+                      padding: 2rem 1.5rem;
+                      max-width: 720px;
+                      font-family: ui-sans-serif, system-ui, sans-serif;
+                  }
+                  h1 { margin-top: 0; }
+                  ul { list-style: none; padding: 0; }
+                  li {
+                      padding: 0.6rem 0.8rem;
+                      border: 1px solid var(--border);
+                      border-radius: 6px;
+                      margin-bottom: 0.5rem;
+                      background: var(--surface);
+                      display: flex;
+                      align-items: baseline;
+                      gap: 0.6rem;
+                  }
+                  a {
+                      color: var(--fg);
+                      text-decoration: none;
+                      font-weight: 600;
+                      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                  }
+                  a:hover { text-decoration: underline; }
+                  .tag {
+                      font-size: 0.78rem;
+                      padding: 0.05rem 0.4rem;
+                      border-radius: 999px;
+                      background: var(--border);
+                      color: var(--muted);
+                  }
+                  footer {
+                      margin-top: 2rem;
+                      color: var(--muted);
+                      font-size: 0.85rem;
+                  }
+              </style>
+          </head>
+          <body>
+              <h1>$ESC_REPO demos</h1>
+              <p>Every deployed version of the SvelteKit playground. <code>latest</code> tracks <code>master</code>; <code>v*</code> entries are pinned to release tags.</p>
+              <ul>
+                  <li><a href="./">/</a><span class="tag">latest (master)</span></li>
+          HTML
+            for TAG in $TAGS; do
+              ESC_TAG=$(esc "$TAG")
+              cat <<HTML
+                  <li><a href="./$ESC_TAG/">/$ESC_TAG/</a><span class="tag">$ESC_TAG</span></li>
+          HTML
+            done
+            cat <<HTML
+              </ul>
+              <footer>Generated $GENERATED_AT.</footer>
+          </body>
+          </html>
+          HTML
+          } > versions.html
+
+      - name: Commit and push
+        id: push
+        env:
+          LABEL: ${{ steps.target.outputs.label }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd gh-pages-wt
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No content changes; skipping push."
+            exit 0
+          fi
+          git commit -m "Deploy $LABEL ($COMMIT_SHA)"
+          git push origin gh-pages
+
+      - name: Report deployed URL
+        env:
+          DEST: ${{ steps.target.outputs.destination }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          LABEL: ${{ steps.target.outputs.label }}
+        run: |
+          set -euo pipefail
+          if [[ "$DEST" == "." ]]; then
+            URL="https://$REPO_OWNER.github.io/$REPO_NAME/"
+          else
+            URL="https://$REPO_OWNER.github.io/$REPO_NAME/$DEST/"
+          fi
+          {
+            echo "## Pages deploy"
+            echo ""
+            echo "**Label:** \`$LABEL\`"
+            echo "**URL:** $URL"
+            echo ""
+            echo "Pages CDN propagation typically lands within ~60s of the gh-pages push."
+          } >> "$GITHUB_STEP_SUMMARY"
