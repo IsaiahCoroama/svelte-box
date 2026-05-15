@@ -1,6 +1,5 @@
 export type { PrimitiveType } from './core/util.js';
-export type { AnyBox } from './core/core.svelte.js';
-export { isBox, type BoxCell } from './core/core.svelte.js';
+export { isBox, type AnyBox, type BoxCell } from './core/core.svelte.js';
 export { BaseBox } from './core/base.svelte.js';
 export { Box, box, type Boxed } from './core/proxy/box.js';
 export { ConstBox, constbox, type ConstBoxed } from './core/proxy/const.js';
