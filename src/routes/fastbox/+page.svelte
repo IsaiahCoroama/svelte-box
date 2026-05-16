@@ -21,7 +21,7 @@
     let cloned = $state<{ count: number; label: string } | null>(null);
 
     const live = fastbox(0);
-    let constView = $state<ReturnType<typeof live.const> | null>(null);
+    let constView = $state<ReturnType<typeof live.toConst> | null>(null);
 
     const samples = [
         ['fastbox(0)', count, isBox(count)],
@@ -94,10 +94,10 @@
 </section>
 
 <section>
-    <h2><code>fastbox.const()</code> reactive read-only view</h2>
+    <h2><code>fastbox.toConst()</code> reactive read-only view</h2>
     <p>live: {live.value}</p>
     <button onclick={() => live.value++}>live++</button>
-    <button onclick={() => (constView = live.const())}>take live.const()</button>
+    <button onclick={() => (constView = live.toConst())}>take live.toConst()</button>
     {#if constView}
         <p>view: {constView.value} (tracks live; writes through view would throw)</p>
     {/if}

@@ -19,7 +19,7 @@ type Forwarded<T> = T extends (...args: infer A) => infer R
  * read-only via a runtime Proxy. Writes are rejected at the trap.
  *
  * `ConstBox<T>` is the bare class; `ConstBoxed<T>` is what the
- * `constbox(...)` factory and `box.const()` return.
+ * `constbox(...)` factory and `box.toConst()` return.
  */
 export type ConstBoxed<T> = ConstBox<T> & Forwarded<T>;
 
@@ -32,7 +32,7 @@ export type ConstBoxed<T> = ConstBox<T> & Forwarded<T>;
  * project invariant holds. The borrow overload accepts {@link AnyBox},
  * so any reactive-cell variant works as a source.
  *
- * Prefer {@link constbox} or `box.const()` over `new ConstBox(...)` so
+ * Prefer {@link constbox} or `box.toConst()` over `new ConstBox(...)` so
  * forwarding shows up in TypeScript without a cast.
  */
 export declare class ConstBox<T> extends ConstFastBox<T> {

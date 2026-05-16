@@ -16,7 +16,7 @@ declare const _Mixins: new <T>(initial: T) => _Mixins<T>;
  * `$state.raw`.
  *
  * Construct from a plain value (captured into the inherited raw cell)
- * or an existing {@link AnyBox} (shared state). `fastbox.const()` is
+ * or an existing {@link AnyBox} (shared state). `fastbox.toConst()` is
  * the shorthand that always borrows from the source `FastBox`.
  */
 export declare class ConstFastBox<T> extends _Mixins<T> {

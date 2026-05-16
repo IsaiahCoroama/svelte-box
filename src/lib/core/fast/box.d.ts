@@ -44,7 +44,7 @@ export declare class FastBox<T> extends BaseBox<T> {
      * a `ConstFastBox` is required without giving up reactivity. No
      * proxy: reach inner-object properties through `.value`.
      */
-    const(): ConstFastBox<T>;
+    toConst(): ConstFastBox<T>;
 }
 
 /**

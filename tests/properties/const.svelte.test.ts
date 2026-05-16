@@ -137,15 +137,15 @@ describe('ConstBox: property: isBox', () => {
     });
 });
 
-describe('ConstBox: property: Box.const() borrows', () => {
-    // `.const()` borrows the source cell so the view stays reactive.
+describe('ConstBox: property: Box.toConst() borrows', () => {
+    // `.toConst()` borrows the source cell so the view stays reactive.
     // This lets a `Box` pass into APIs that require a `ConstBox`.
 
-    it('Box.const() reflects source updates', () => {
+    it('Box.toConst() reflects source updates', () => {
         fc.assert(
             fc.property(fc.integer(), fc.integer(), (init, next) => {
                 const b = new Box(init);
-                const cv = b.const();
+                const cv = b.toConst();
                 expect(cv.value).toBe(init);
                 b.value = next;
                 expect(cv.value).toBe(next);
@@ -153,11 +153,11 @@ describe('ConstBox: property: Box.const() borrows', () => {
         );
     });
 
-    it('FastBox.const() reflects source updates', () => {
+    it('FastBox.toConst() reflects source updates', () => {
         fc.assert(
             fc.property(fc.integer(), fc.integer(), (init, next) => {
                 const b = new FastBox(init);
-                const cv = b.const();
+                const cv = b.toConst();
                 expect(cv.value).toBe(init);
                 b.value = next;
                 expect(cv.value).toBe(next);
@@ -165,11 +165,11 @@ describe('ConstBox: property: Box.const() borrows', () => {
         );
     });
 
-    it('Box.const() rejects writes through the view', () => {
+    it('Box.toConst() rejects writes through the view', () => {
         fc.assert(
             fc.property(fc.integer(), fc.integer(), (init, next) => {
                 const b = new Box(init);
-                const cv = b.const();
+                const cv = b.toConst();
                 expect(() => {
                     (cv as unknown as { value: number }).value = next;
                 }).toThrow(TypeError);
@@ -178,11 +178,11 @@ describe('ConstBox: property: Box.const() borrows', () => {
         );
     });
 
-    it('FastBox.const() rejects writes through the view', () => {
+    it('FastBox.toConst() rejects writes through the view', () => {
         fc.assert(
             fc.property(fc.integer(), fc.integer(), (init, next) => {
                 const b = new FastBox(init);
-                const cv = b.const();
+                const cv = b.toConst();
                 expect(() => {
                     (cv as unknown as { value: number }).value = next;
                 }).toThrow(TypeError);
