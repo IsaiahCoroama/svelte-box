@@ -317,7 +317,7 @@ Prefer the `box(...)` factory below over `new Box(...)` at all call sites. Direc
 | `box.snapshot()`   | Returns a non-reactive deep clone of the current value. Wraps `$state.snapshot`.      |
 | `box.eager()`      | Returns the current value bypassing async UI suspension. Wraps `$state.eager`.        |
 | `box.toJSON()`     | Returns the inner value. Called automatically by `JSON.stringify`.                    |
-| `box.const()`      | Returns a read-only `ConstBox<T>` borrowing the source so the view stays reactive.    |
+| `box.toConst()`    | Returns a read-only `ConstBox<T>` borrowing the source so the view stays reactive.    |
 | `box.clone()`      | Returns `structuredClone($state.snapshot(box.value))`. Plain, non-reactive deep copy. |
 
 Type guards: `isBoolean`, `isNumber`, `isString`, `isBigInt`, `isSymbol`, `isUndefined`, `isNull`, `isNullish`, `isPrimitive`, `isObject`, `isArray`, `isFunction`, `isMap`, `isSet`. Each narrows the boxed value via the polymorphic-`this` predicate `this is this & BoxCell<X>`, so inside an `if (b.isString())` block the original subclass type is preserved and only the `value` field is refined to `string`.
@@ -345,7 +345,7 @@ s.value.add('y'); // reactive
 
 ### `class FastBox<T>`
 
-Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no proxy mediation of `instanceof` (a `FastBox` is a plain class, so subclass `instanceof` works through the normal prototype chain). The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`, `clone`) and all 14 type guards work identically because they live on the shared `BaseBox` parent. `fastbox.const()` returns a `ConstFastBox<T>` (the no-proxy const variant) borrowing the source so the view stays reactive.
+Same surface as `Box<T>`, minus everything proxy-driven. No transparent forwarding, no callability for function values, no proxy mediation of `instanceof` (a `FastBox` is a plain class, so subclass `instanceof` works through the normal prototype chain). The helper methods (`get`, `set`, `del`, `snapshot`, `eager`, `toJSON`, `clone`) and all 14 type guards work identically because they live on the shared `BaseBox` parent. `fastbox.toConst()` returns a `ConstFastBox<T>` (the no-proxy const variant) borrowing the source so the view stays reactive.
 
 Prefer the `fastbox(...)` factory below for parity with `box(...)`.
 
@@ -384,7 +384,7 @@ view.value; // 5
 const frozen = constbox(10); // independent, captured value
 ```
 
-`box.const()` is the shorthand for `new ConstBox(box)`: a reactive read-only view borrowed from the source. Use it to hand a `Box` to code that requires a `ConstBox` without losing reactivity. For an independent captured snapshot, call `new ConstBox(box.value)` or `box.snapshot()` followed by `new ConstBox(...)`.
+`box.toConst()` is the shorthand for `new ConstBox(box)`: a reactive read-only view borrowed from the source. Use it to hand a `Box` to code that requires a `ConstBox` without losing reactivity. For an independent captured snapshot, call `new ConstBox(box.value)` or `box.snapshot()` followed by `new ConstBox(...)`.
 
 ### `constbox(value | otherBox)`
 
@@ -812,14 +812,14 @@ If your app is a typical UI (forms, lists with hundreds of items, interactive vi
 
 The const variants and `LazyBox` get their own bench files. Headline numbers (same hardware as the tables above):
 
-| Operation                                       | Result                                                        |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| `new ConstFastBox(value)` capture vs `new Box`  | ~1.85x **faster** (no proxy)                                  |
-| `new ConstFastBox(otherBox)` borrow vs ConstBox | ~2x faster (no proxy on the borrowed handle either)           |
-| `.value` read on a borrowed const view          | match with reading the source directly                        |
-| `box.const()` vs `fastbox.const()`              | `fastbox.const()` ~2.3x faster (returns the no-proxy variant) |
-| `LazyBox.prefetch()` warm hit                   | match with a hand-rolled cached-promise pattern               |
-| `LazyBox.value` read on a cached promise        | match with raw `$state` read speed                            |
+| Operation                                       | Result                                                          |
+| ----------------------------------------------- | --------------------------------------------------------------- |
+| `new ConstFastBox(value)` capture vs `new Box`  | ~1.85x **faster** (no proxy)                                    |
+| `new ConstFastBox(otherBox)` borrow vs ConstBox | ~2x faster (no proxy on the borrowed handle either)             |
+| `.value` read on a borrowed const view          | match with reading the source directly                          |
+| `box.toConst()` vs `fastbox.toConst()`          | `fastbox.toConst()` ~2.3x faster (returns the no-proxy variant) |
+| `LazyBox.prefetch()` warm hit                   | match with a hand-rolled cached-promise pattern                 |
+| `LazyBox.value` read on a cached promise        | match with raw `$state` read speed                              |
 
 What this buys you: handing a child a read-only handle through `new ConstBox(source)` or `new ConstFastBox(source)` does not slow the child's reads. Pick `ConstFastBox` when the child only ever reads through `.value`; pick `ConstBox` when transparent forwarding matters.
 
@@ -917,7 +917,7 @@ For reference, the Box proxy implements: `apply`, `construct`, `get`, `set`, `ha
 - **`FastBox` collisions are destructive, not shadowed.** With no proxy in the way, calling `fb.set(k, v)` on a `FastBox<Map<K, V>>` invokes `BaseBox.set(value)` and overwrites `.value` with `k`, dropping `v`. Always reach inner Map/Set methods through `.value`: `fb.value.set(k, v)`.
 - **Plain `Map` and `Set` are not reactive.** Use `boxedMap()` or `boxedSet()` instead of `new Box(new Map())`.
 - **`Object.keys(box)` returns the inner object's keys.** Box's helper methods are hidden from key enumeration so spreads and iteration behave like the inner value.
-- **`Object.freeze(box)` throws.** Freezing or sealing the proxy itself is not supported. Svelte's `$state` proxy also refuses `Object.freeze` on inner values, so there is no built-in freeze helper. For read-only access use `box.const()` (reactive read-only view) or `clone()` (detached mutable copy).
+- **`Object.freeze(box)` throws.** Freezing or sealing the proxy itself is not supported. Svelte's `$state` proxy also refuses `Object.freeze` on inner values, so there is no built-in freeze helper. For read-only access use `box.toConst()` (reactive read-only view) or `clone()` (detached mutable copy).
 - **Tools that walk the proxy see a function, not the inner value.** The Box proxy wraps a function target so it can be callable, which means `node:util.inspect(box)` prints something like `[Function (anonymous)]` and `console.log(box)` in Node is not useful. Use `console.log(box.snapshot())` (or `box.value`) for readable output. Browser DevTools handles this better, expanding the proxy to show forwarded keys.
 - **`structuredClone(box)` throws.** `structuredClone` rejects functions, and the proxy target is a function (so the box can be callable). Clone `box.value` or `box.snapshot()` instead, both of which produce a plain serializable object.
 - **FastBox does no transparent forwarding.** `fastbox.foo` is `undefined` even when `fastbox.value.foo` exists. Mixing Box and FastBox with the same `BaseBox<T>` parameter type is fine, but call sites that depend on forwarding must use `Box`.
@@ -934,7 +934,7 @@ The repository ships:
     - All 14 type guards plus reactive re-evaluation as the boxed type changes.
     - `snapshot()`, `eager()`, `toJSON()` / `JSON.stringify`, `structuredClone`, `clone()`.
     - Proxy semantics: `Object.freeze` rejection, `Object.setPrototypeOf` rejection, `Object.defineProperty` routing, `delete` of own keys, stable method identity for forwarded methods, the `apply`-trap `this` contract, and primitive non-forwarding.
-    - `ConstBox` / `ConstFastBox` capture and borrow modes, read-only write-trap rejection, and `box.const()` / `fastbox.const()` derivation returning the right variant.
+    - `ConstBox` / `ConstFastBox` capture and borrow modes, read-only write-trap rejection, and `box.toConst()` / `fastbox.toConst()` derivation returning the right variant.
     - `LazyBox` loader semantics: warm-cache promise reuse, `reset()` invalidation, synchronous-throw normalisation to rejected promise, non-thenable wrapping.
     - `isBox(value)` recognition of every reactive-cell variant plus rejection of non-box inputs.
     - `BoxedMap` / `BoxedSet` (proxy variants), `FastBoxedMap` / `FastBoxedSet` (no-proxy variants), and the `Const*` collection family for mutations, replacement, iteration, and reactivity.

@@ -12,13 +12,13 @@ declare const _Mixins: new <T>(initial: T) => _Mixins<T>;
  * mixins. Both subclasses inherit from `BaseBox`, so anything documented
  * here applies to both.
  *
- * `const()` lives on the leaves rather than here because the chosen
+ * `toConst()` lives on the leaves rather than here because the chosen
  * const variant differs (`Box` returns `ConstBox`, `FastBox` returns
  * `ConstFastBox`).
  *
  * Use `BaseBox<T>` as a parameter type to accept either subclass.
  * Subclassing `BaseBox` directly yields something equivalent to
- * `FastBox` minus `const()`.
+ * `FastBox` minus `toConst()`.
  */
 export declare class BaseBox<T> extends _Mixins<T> {
     /**

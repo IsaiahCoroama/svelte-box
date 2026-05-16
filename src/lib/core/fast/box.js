@@ -3,7 +3,7 @@ import { ConstFastBox } from './const.svelte.js';
 
 // See box.d.ts for the public API doc.
 export class FastBox extends BaseBox {
-    const() {
+    toConst() {
         return new ConstFastBox(this);
     }
 }

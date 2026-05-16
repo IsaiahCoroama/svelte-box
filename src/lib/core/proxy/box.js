@@ -27,7 +27,7 @@ export class Box extends BaseBox {
         });
     }
 
-    const() {
+    toConst() {
         return new ConstBox(this);
     }
 }

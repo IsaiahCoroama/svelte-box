@@ -91,7 +91,7 @@ export declare class Box<T> extends BaseBox<T> {
      * a `ConstBox` is required without giving up reactivity. Preserves
      * transparent forwarding on the const view.
      */
-    const(): ConstBoxed<T>;
+    toConst(): ConstBoxed<T>;
 }
 
 /**

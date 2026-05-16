@@ -78,25 +78,25 @@ describe('ConstBox: reactivity', () => {
         cleanup();
     });
 
-    it('Box.const() borrows the source so the view stays reactive', () => {
+    it('Box.toConst() borrows the source so the view stays reactive', () => {
         const src = box(10);
-        const view = src.const();
+        const view = src.toConst();
         expect(view.value).toBe(10);
 
         src.value = 20;
         expect(view.value).toBe(20);
     });
 
-    it('Box.const() returns a proxy-backed ConstBox', () => {
+    it('Box.toConst() returns a proxy-backed ConstBox', () => {
         const src = box({ a: 1, b: 2 });
-        const view = src.const();
+        const view = src.toConst();
         expect(view).toBeInstanceOf(ConstBox);
         expect(view.value).toEqual({ a: 1, b: 2 });
     });
 
-    it('FastBox.const() returns a plain ConstFastBox', () => {
+    it('FastBox.toConst() returns a plain ConstFastBox', () => {
         const src = new FastBox(3);
-        const view = src.const();
+        const view = src.toConst();
         expect(view).toBeInstanceOf(ConstFastBox);
         expect(view).not.toBeInstanceOf(ConstBox);
         expect(view.value).toBe(3);

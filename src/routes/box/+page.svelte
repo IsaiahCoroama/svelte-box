@@ -22,10 +22,10 @@
     const clonable = box({ count: 0, label: 'fresh' });
     let cloned = $state<{ count: number; label: string } | null>(null);
 
-    // .const() borrow demo. Bump `live`, take a const view, bump again,
-    // see the view track because .const() borrows the source cell.
+    // .toConst() borrow demo. Bump `live`, take a const view, bump again,
+    // see the view track because .toConst() borrows the source cell.
     const live = box(0);
-    let constView = $state<ReturnType<typeof live.const> | null>(null);
+    let constView = $state<ReturnType<typeof live.toConst> | null>(null);
 
     // isBox demo with mixed inputs.
     const samples = [
@@ -99,10 +99,10 @@
 </section>
 
 <section>
-    <h2><code>box.const()</code> reactive read-only view</h2>
+    <h2><code>box.toConst()</code> reactive read-only view</h2>
     <p>live: {live.value}</p>
     <button onclick={() => live.value++}>live++</button>
-    <button onclick={() => (constView = live.const())}>take live.const()</button>
+    <button onclick={() => (constView = live.toConst())}>take live.toConst()</button>
     {#if constView}
         <p>view: {constView.value} (tracks live; writes through view would throw)</p>
     {/if}

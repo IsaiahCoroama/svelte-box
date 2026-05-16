@@ -120,16 +120,16 @@ describe('const forwarded prop read', () => {
 // Derive const view from a mutable Box
 // ---------------------------------------------------------------------------
 
-describe('box.const() and fastbox.const()', () => {
+describe('box.toConst() and fastbox.toConst()', () => {
     const bx = new Box({ a: 1, b: 2 });
     const fb = new FastBox({ a: 1, b: 2 });
 
-    bench('Box.const(): returns ConstBox snapshot', () => {
-        bx.const();
+    bench('Box.toConst(): returns ConstBox snapshot', () => {
+        bx.toConst();
     });
 
-    bench('FastBox.const(): returns ConstFastBox snapshot', () => {
-        fb.const();
+    bench('FastBox.toConst(): returns ConstFastBox snapshot', () => {
+        fb.toConst();
     });
 });
 
