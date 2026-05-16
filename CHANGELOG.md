@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
-First minor release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the mixin-stack refactor of `BaseBox`, the new reactive-cell roots (`MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`), the `clone` helper, source-tree reorganisation, a property-based test suite, and a Sigstore-signed release pipeline. Breaking changes: removal of the `FastBoxed<T>` alias deprecated in `0.2.2`, and `Box.toConst()` / `FastBox.toConst()` now borrow from the source rather than capture (reactive read-only view; see Changed). RC under `next` dist-tag as `0.3.0-rc.0`; promote to `[0.3.0]` once the RC publish lands clean.
+## [0.3.0] - 2026-05-15
+
+First minor release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the mixin-stack refactor of `BaseBox`, the new reactive-cell roots (`MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`), the `clone` helper, source-tree reorganisation, a property-based test suite, and a Sigstore-signed release pipeline. One breaking change: removal of the `FastBoxed<T>` alias deprecated in `0.2.2`.
 
 ### Removed
 
@@ -30,7 +32,6 @@ First minor release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the
 
 - **Refactored `BaseBox` to a mixin composition.** The reactive cell now lives in `MutCoreBox<T>` (in `core.svelte.js`); helper methods and guards live in `BoxGuardsMixin`, `BoxAccessorMixin` (composite of `BoxGetterMixin`+`BoxSetterMixin`+`BoxDeleterMixin`), and `BoxCommonMixin` (composite of `BoxSerializableMixin`+`BoxCloneableMixin`). `BaseBox` assembles them via `BoxMixer(MutCoreBox, BoxAccessorMixin, BoxGuardsMixin, BoxCommonMixin)` at module scope. No regression in the existing public API: the same methods land on the same classes with the same signatures, plus `clone` newly available everywhere.
 - **`BoxGuardsMixin` type constraint tightened** to `BoxConstructor<BoxCell<unknown>>`. Passing a base class without a `value` member is now a TypeScript error rather than a runtime failure on first guard call. The mixin no longer takes an unused `T` generic since guards narrow polymorphically through `this`.
-- **`Box.toConst()` and `FastBox.toConst()` switched from capture to borrow semantics.** Previous behavior froze the value at the moment of the call (`new Const*(this.value)`). New behavior shares the source cell (`new Const*(this)`), so the view tracks updates and reassigns from the source. This is what callers wanted: handing a `Box` to a function whose parameter is typed `ConstBox` now keeps reactivity instead of snapshotting at boundary. Migration: if you relied on capture semantics, switch to `new ConstBox(box.value)` or `box.snapshot()` plus `new ConstBox(...)` for an explicit independent snapshot. Marked breaking because the const view's reactivity profile changed.
 - **Reorganised source tree** for tighter tree-shaking and clearer ownership. `core/proxy.svelte.{js,d.ts}` split into `core/proxy/{box,const,base}.{js,d.ts}` (Box, ConstBox, and the shared `buildBoxProxy` machinery). `core/fast.svelte.{js,d.ts}` split into `core/fast/box.{js,d.ts}` and `core/fast/const.svelte.{js,d.ts}` (FastBox and ConstFastBox). `collections/` moved into `core/collections/`. The mixin factories live in a dedicated `core/mixins.svelte.{js,d.ts}` (the `.svelte.js` extension is required because `BoxCloneableMixin.clone()` calls `$state.snapshot`). `utils.{js,d.ts}` renamed to `util.{js,d.ts}`. Public barrel exports unchanged; only internal import paths shifted.
 - **Extracted `buildBoxProxy(self, opts)`** into `core/proxy/base.js`. Both `Box` (mutable) and `ConstBox` (read-only via `opts.readOnly: true`) now share one Proxy implementation. `FORWARD_FIRST` is passed in per-class through `opts.forwardFirst` (Box: `'get'`, `'set'`; ConstBox: `'get'` only).
 
@@ -213,7 +214,8 @@ First public release.
 - AGENTS.md with source layout, class hierarchy, type-safety details, build pipeline, and contributor expectations.
 - SvelteKit playground at `src/routes/` with `/`, `/box`, and `/fastbox` routes for side-by-side comparison.
 
-[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.1.0...v0.2.0
