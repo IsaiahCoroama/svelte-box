@@ -5,18 +5,18 @@
         <link rel="icon" href="/svelte-box/latest/favicon.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="text-scale" content="scale" />
-        <link href="/svelte-box/latest/_app/immutable/entry/start.ud16mqY4.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/chunks/Dcge0B9T.js" rel="modulepreload">
+        <link href="/svelte-box/latest/_app/immutable/entry/start.Duck8QRA.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/chunks/uvQhfmzm.js" rel="modulepreload">
 		<link href="/svelte-box/latest/_app/immutable/chunks/Bz-ab62C.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/entry/app.C_Qb4qt4.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/entry/app.BQfCDlSK.js" rel="modulepreload">
 		<link href="/svelte-box/latest/_app/immutable/chunks/1cW-6WHE.js" rel="modulepreload">
 		<link href="/svelte-box/latest/_app/immutable/chunks/Cfug8aQt.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/nodes/0.D35FisBJ.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/chunks/BIO8sENp.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/nodes/3.BO-l-mP0.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/chunks/CltoeZJ9.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/nodes/0.tEKCRlkj.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/chunks/BQnCZpnT.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/nodes/3.C_88RxZr.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/chunks/Be84GD9J.js" rel="modulepreload">
 		<link href="/svelte-box/latest/_app/immutable/chunks/BaGZDRO_.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/chunks/DelXYwY3.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/chunks/Bi3UU4tU.js" rel="modulepreload">
 		
 		<link href="/svelte-box/latest/_app/immutable/assets/0.CzMNgHdW.css" rel="stylesheet">
 		<link href="/svelte-box/latest/_app/immutable/assets/3.DoQexjQA.css" rel="stylesheet">
@@ -44,11 +44,11 @@
         </script>
     </head>
     <body data-sveltekit-preload-data="hover">
-        <div style="display: contents"><!--[--><!--[0--><!--[--><header class="svelte-12qhfyh"><a href="/svelte-box/latest/" class="svelte-12qhfyh">home</a> <a href="/svelte-box/latest/box" class="svelte-12qhfyh active">box</a> <a href="/svelte-box/latest/fastbox" class="svelte-12qhfyh">fastbox</a> <a href="/svelte-box/latest/const" class="svelte-12qhfyh">const</a> <a href="/svelte-box/latest/lazy" class="svelte-12qhfyh">lazy</a> <button class="theme-toggle svelte-12qhfyh" aria-label="Switch to dark mode" title="Switch to dark mode"><!--[-1--><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="svelte-12qhfyh"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><!--]--></button></header> <main class="svelte-12qhfyh"><!--[--><h1>Box demo</h1> <p>Proxy-backed. Inner properties forward through the box.</p> <section><h2>primitive box</h2> <button>count: 0</button> <input value="hello"/> <p>message: hello</p></section> <section><h2>object box (transparent forwarding)</h2> <p>name: Ada | age: 36</p> <button>age++</button></section> <section><h2>array box</h2> <p>list: 1, 2, 3 (len: 3)</p> <button>push</button></section> <section><h2>function box (callable)</h2> <p>hi, world</p></section> <section><h2>boxedMap (SvelteMap)</h2> <p>scores size: 2</p> <!--[--><p>ada: 100</p><p>ben: 80</p><!--]--> <button>add cyd</button></section> <section><h2>boxedSet (SvelteSet)</h2> <p>tags: svelte, reactive (size: 2)</p> <button>add tag</button></section> <section><h2>type guards</h2> <p>count is number: true</p> <p>user is object: true</p> <p>list is array: true</p> <p>greet is function: true</p> <p>scores is map: true</p></section> <section><h2><code>clone()</code></h2> <p>value: {"count":0,"label":"fresh"}</p> <button>count++</button> <button>clone()</button> <!--[-1--><!--]--></section> <section><h2><code>box.const()</code> reactive read-only view</h2> <p>live: 0</p> <button>live++</button> <button>take live.const()</button> <!--[-1--><!--]--></section> <section><h2><code>isBox</code></h2> <table class="svelte-gusa9e"><thead><tr><th class="svelte-gusa9e">input</th><th class="svelte-gusa9e">isBox</th></tr></thead><tbody><!--[--><tr><td class="svelte-gusa9e"><code>box(0)</code></td><td class="svelte-gusa9e">true</td></tr><tr><td class="svelte-gusa9e"><code>boxedSet([])</code></td><td class="svelte-gusa9e">true</td></tr><tr><td class="svelte-gusa9e"><code>plain { value: 1 }</code></td><td class="svelte-gusa9e">false</td></tr><tr><td class="svelte-gusa9e"><code>42</code></td><td class="svelte-gusa9e">false</td></tr><tr><td class="svelte-gusa9e"><code>null</code></td><td class="svelte-gusa9e">false</td></tr><!--]--></tbody></table></section><!--]--><!----></main><!--]--><!--]--> <!--[-1--><!--]--><!--]-->
+        <div style="display: contents"><!--[--><!--[0--><!--[--><header class="svelte-12qhfyh"><a href="/svelte-box/latest/" class="svelte-12qhfyh">home</a> <a href="/svelte-box/latest/box" class="svelte-12qhfyh active">box</a> <a href="/svelte-box/latest/fastbox" class="svelte-12qhfyh">fastbox</a> <a href="/svelte-box/latest/const" class="svelte-12qhfyh">const</a> <a href="/svelte-box/latest/lazy" class="svelte-12qhfyh">lazy</a> <button class="theme-toggle svelte-12qhfyh" aria-label="Switch to dark mode" title="Switch to dark mode"><!--[-1--><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="svelte-12qhfyh"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><!--]--></button></header> <main class="svelte-12qhfyh"><!--[--><h1>Box demo</h1> <p>Proxy-backed. Inner properties forward through the box.</p> <section><h2>primitive box</h2> <button>count: 0</button> <input value="hello"/> <p>message: hello</p></section> <section><h2>object box (transparent forwarding)</h2> <p>name: Ada | age: 36</p> <button>age++</button></section> <section><h2>array box</h2> <p>list: 1, 2, 3 (len: 3)</p> <button>push</button></section> <section><h2>function box (callable)</h2> <p>hi, world</p></section> <section><h2>boxedMap (SvelteMap)</h2> <p>scores size: 2</p> <!--[--><p>ada: 100</p><p>ben: 80</p><!--]--> <button>add cyd</button></section> <section><h2>boxedSet (SvelteSet)</h2> <p>tags: svelte, reactive (size: 2)</p> <button>add tag</button></section> <section><h2>type guards</h2> <p>count is number: true</p> <p>user is object: true</p> <p>list is array: true</p> <p>greet is function: true</p> <p>scores is map: true</p></section> <section><h2><code>clone()</code></h2> <p>value: {"count":0,"label":"fresh"}</p> <button>count++</button> <button>clone()</button> <!--[-1--><!--]--></section> <section><h2><code>box.toConst()</code> reactive read-only view</h2> <p>live: 0</p> <button>live++</button> <button>take live.toConst()</button> <!--[-1--><!--]--></section> <section><h2><code>isBox</code></h2> <table class="svelte-gusa9e"><thead><tr><th class="svelte-gusa9e">input</th><th class="svelte-gusa9e">isBox</th></tr></thead><tbody><!--[--><tr><td class="svelte-gusa9e"><code>box(0)</code></td><td class="svelte-gusa9e">true</td></tr><tr><td class="svelte-gusa9e"><code>boxedSet([])</code></td><td class="svelte-gusa9e">true</td></tr><tr><td class="svelte-gusa9e"><code>plain { value: 1 }</code></td><td class="svelte-gusa9e">false</td></tr><tr><td class="svelte-gusa9e"><code>42</code></td><td class="svelte-gusa9e">false</td></tr><tr><td class="svelte-gusa9e"><code>null</code></td><td class="svelte-gusa9e">false</td></tr><!--]--></tbody></table></section><!--]--><!----></main><!--]--><!--]--> <!--[-1--><!--]--><!--]-->
 			
 			<script>
 				{
-					__sveltekit_ndszlk = {
+					__sveltekit_1q790xh = {
 						base: "/svelte-box/latest",
 						assets: "/svelte-box/latest"
 					};
@@ -56,8 +56,8 @@
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/svelte-box/latest/_app/immutable/entry/start.ud16mqY4.js"),
-						import("/svelte-box/latest/_app/immutable/entry/app.C_Qb4qt4.js")
+						import("/svelte-box/latest/_app/immutable/entry/start.Duck8QRA.js"),
+						import("/svelte-box/latest/_app/immutable/entry/app.BQfCDlSK.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element, {
 							node_ids: [0, 3],

@@ -5,15 +5,15 @@
         <link rel="icon" href="/svelte-box/latest/favicon.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="text-scale" content="scale" />
-        <link href="/svelte-box/latest/_app/immutable/entry/start.ud16mqY4.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/chunks/Dcge0B9T.js" rel="modulepreload">
+        <link href="/svelte-box/latest/_app/immutable/entry/start.Duck8QRA.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/chunks/uvQhfmzm.js" rel="modulepreload">
 		<link href="/svelte-box/latest/_app/immutable/chunks/Bz-ab62C.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/entry/app.C_Qb4qt4.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/entry/app.BQfCDlSK.js" rel="modulepreload">
 		<link href="/svelte-box/latest/_app/immutable/chunks/1cW-6WHE.js" rel="modulepreload">
 		<link href="/svelte-box/latest/_app/immutable/chunks/Cfug8aQt.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/nodes/0.D35FisBJ.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/chunks/BIO8sENp.js" rel="modulepreload">
-		<link href="/svelte-box/latest/_app/immutable/nodes/2.vG6tLtJB.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/nodes/0.tEKCRlkj.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/chunks/BQnCZpnT.js" rel="modulepreload">
+		<link href="/svelte-box/latest/_app/immutable/nodes/2.w9FDEFgS.js" rel="modulepreload">
 		
 		<link href="/svelte-box/latest/_app/immutable/assets/0.CzMNgHdW.css" rel="stylesheet">
         <script>
@@ -42,7 +42,7 @@
     <body data-sveltekit-preload-data="hover">
         <div style="display: contents"><!--[--><!--[0--><!--[--><header class="svelte-12qhfyh"><a href="/svelte-box/latest/" class="svelte-12qhfyh active">home</a> <a href="/svelte-box/latest/box" class="svelte-12qhfyh">box</a> <a href="/svelte-box/latest/fastbox" class="svelte-12qhfyh">fastbox</a> <a href="/svelte-box/latest/const" class="svelte-12qhfyh">const</a> <a href="/svelte-box/latest/lazy" class="svelte-12qhfyh">lazy</a> <button class="theme-toggle svelte-12qhfyh" aria-label="Switch to dark mode" title="Switch to dark mode"><!--[-1--><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="svelte-12qhfyh"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg><!--]--></button></header> <main class="svelte-12qhfyh"><!--[--><h1>svelte-box playground</h1> <p>Five live demos. Each page focuses on one container so the behavior is easy to read.</p> <section><h2><a href="/svelte-box/latest/box">/box</a></h2> <p>Proxy-backed. Transparent property forwarding (<code>box.foo</code> reads the inner object),
         callable when wrapping a function, <code>instanceof Box</code> through subclasses. Bottom of
-        the page shows <code>freeze</code>, <code>clone</code>, <code>const()</code>, and <code>isBox</code>.</p></section> <section><h2><a href="/svelte-box/latest/fastbox">/fastbox</a></h2> <p>Plain class, no proxy. Same <code>.value</code> reactivity, same helpers and type guards.
+        the page shows <code>clone</code>, <code>box.toConst()</code>, and <code>isBox</code>.</p></section> <section><h2><a href="/svelte-box/latest/fastbox">/fastbox</a></h2> <p>Plain class, no proxy. Same <code>.value</code> reactivity, same helpers and type guards.
         Faster to construct, no transparent forwarding. Reach inner properties through <code>.value</code>.</p></section> <section><h2><a href="/svelte-box/latest/const">/const</a></h2> <p>Read-only views. <code>ConstBox</code> and <code>ConstFastBox</code> in both <em>capture</em> mode (independent snapshot) and <em>borrow</em> mode (shared live state with
         the source). Side-by-side mutation makes the difference visible.</p></section> <section><h2><a href="/svelte-box/latest/lazy">/lazy</a></h2> <p>Deferred-loader cell. The loader runs on the first <code>prefetch()</code>; later calls
         return the cached promise until <code>reset()</code> clears it. The demo counts loader invocations
@@ -50,7 +50,7 @@
 			
 			<script>
 				{
-					__sveltekit_ndszlk = {
+					__sveltekit_1q790xh = {
 						base: "/svelte-box/latest",
 						assets: "/svelte-box/latest"
 					};
@@ -58,8 +58,8 @@
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/svelte-box/latest/_app/immutable/entry/start.ud16mqY4.js"),
-						import("/svelte-box/latest/_app/immutable/entry/app.C_Qb4qt4.js")
+						import("/svelte-box/latest/_app/immutable/entry/start.Duck8QRA.js"),
+						import("/svelte-box/latest/_app/immutable/entry/app.BQfCDlSK.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element, {
 							node_ids: [0, 2],
