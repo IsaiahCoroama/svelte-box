@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-05-15
+## [1.0.0] - 2026-05-18
 
-First minor release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the mixin-stack refactor of `BaseBox`, the new reactive-cell roots (`MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`), the `clone` helper, source-tree reorganisation, a property-based test suite, and a Sigstore-signed release pipeline. One breaking change: removal of the `FastBoxed<T>` alias deprecated in `0.2.2`.
+First stable release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the mixin-stack refactor of `BaseBox`, the new reactive-cell roots (`MutCoreBox`, `RawCoreBox`, `RawMutCoreBox`), the `clone` helper, source-tree reorganisation, a property-based test suite, and a Sigstore-signed release pipeline. Breaking changes against `v0.2.2` are the trigger for the `1.0.0` rather than `0.3.0` bump: the `FastBoxed<T>` alias deprecated in `0.2.2` is removed. The library's public surface is now stable under semver.
 
 ### Removed
 
@@ -42,7 +42,7 @@ First minor release after `v0.2.2`. Bundles the Const\* / LazyBox additions, the
 ### Tooling and infrastructure
 
 - **Versioned GitHub Pages playground.** `pages.yml` now publishes each `v*` tag to its own `/<repo>/<tag>/` subpath, master to `/<repo>/latest/`, and regenerates a versions index at the site root after every deploy. The master deploy also backfills missing tag subdirs by checking out each tag in a detached worktree, building with the tag's own lockfile, and staging the result. Tag deploys are refused when the tag commit is not an ancestor of `master`. Replaces the previous single-bundle deploy.
-- **Pages bootstrap fixes** for the per-tag layout: `kit.paths.relative = false` so prerendered subpages emit absolute asset URLs (the previous relative URLs broke when a page lived more than one segment deep, e.g. `/<repo>/v0.3.0/box/`), and a `.nojekyll` is written at the gh-pages branch root so Jekyll does not strip `_app/` from any versioned subdir.
+- **Pages bootstrap fixes** for the per-tag layout: `kit.paths.relative = false` so prerendered subpages emit absolute asset URLs (the previous relative URLs broke when a page lived more than one segment deep, e.g. `/<repo>/v1.0.0/box/`), and a `.nojekyll` is written at the gh-pages branch root so Jekyll does not strip `_app/` from any versioned subdir.
 - **Playground extended.** Two new routes (`/const`, `/lazy`) demonstrate `ConstBox`/`ConstFastBox` capture-vs-borrow modes and `LazyBox` cache-once semantics. The shared layout gained a light/dark theme toggle persisted in `localStorage`, with a pre-paint script in `app.html` to avoid the first-paint flash. Existing `/box` and `/fastbox` pages picked up `clone()` and `toConst()` sections.
 - **CodeQL workflow bumped to `github/codeql-action@v4`** (init and analyze steps) and the `pull_request` trigger had its `paths:` filter removed. OpenSSF Scorecard's SAST check inspects the most recent merged PRs for a CodeQL run, and a path filter that excluded most of them was reading as "no SAST". Push-side path filter and the weekly cron are retained.
 
@@ -56,7 +56,7 @@ Pipeline-hardening release plus a single deprecation. No runtime behavior change
 
 ### Deprecated
 
-- **`FastBoxed<T>` type alias** is now `@deprecated`, scheduled for removal in `0.3.0`. It was a cosmetic alias for `FastBox<T>` introduced for symmetry with the `Boxed<T>` / `Box<T>` pair, but `FastBox` performs no proxy forwarding so there is no extra shape to project. Migration: replace every `FastBoxed<T>` with `FastBox<T>`. The two are assignment-compatible, so the swap has no runtime or type effect. The `fastbox(...)` factory return type, `FastBoxedMap<K, V>`, and `FastBoxedSet<T>` now resolve to `FastBox<T>` directly; the public names of those collection aliases are unchanged.
+- **`FastBoxed<T>` type alias** is now `@deprecated`, scheduled for removal in the next major release. It was a cosmetic alias for `FastBox<T>` introduced for symmetry with the `Boxed<T>` / `Box<T>` pair, but `FastBox` performs no proxy forwarding so there is no extra shape to project. Migration: replace every `FastBoxed<T>` with `FastBox<T>`. The two are assignment-compatible, so the swap has no runtime or type effect. The `fastbox(...)` factory return type, `FastBoxedMap<K, V>`, and `FastBoxedSet<T>` now resolve to `FastBox<T>` directly; the public names of those collection aliases are unchanged.
 
 ### Tooling and infrastructure
 
@@ -214,8 +214,8 @@ First public release.
 - AGENTS.md with source layout, class hierarchy, type-safety details, build pipeline, and contributor expectations.
 - SvelteKit playground at `src/routes/` with `/`, `/box`, and `/fastbox` routes for side-by-side comparison.
 
-[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.2...v0.3.0
+[Unreleased]: https://github.com/IsaiahCoroama/svelte-box/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.2...v1.0.0
 [0.2.2]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/IsaiahCoroama/svelte-box/compare/v0.1.0...v0.2.0

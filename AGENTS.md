@@ -108,7 +108,7 @@ None re-exported from public barrel. `AnyBox<T>` = union; `isBox(v)` = runtime g
 
 Runtime behavior fully deduplicated through mixin chain: add guard to `BoxGuardsMixin` once and `BaseBox`, `Box`, `FastBox`, `ConstBox`, `ConstFastBox` all pick up. d.ts deduplicates too, via type-guard predicates using polymorphic `this`: each guard return `this is this & BoxCell<SomeType>` rather than `this is BaseBox<SomeType>`. Pattern preserve calling subclass type while narrow only value field, so `Box<unknown>` narrow to `Box<unknown> & BoxCell<string>` rather than drop to `BaseBox<string>`.
 
-Transparent-forwarding shape (`Boxed<T> = Box<T> & Forwarded<T>`) lives in [core/proxy/box.d.ts](src/lib/core/proxy/box.d.ts) only. No equivalent on no-proxy side: `FastBox<T>` = only public name. `FastBoxed<T>` = deprecated alias removed in 0.3.0. Do not introduce higher-kinded helper for these names, TypeScript not support HKT and older `BaseBoxed<T, B>` definition with `B<T>` not type-check.
+Transparent-forwarding shape (`Boxed<T> = Box<T> & Forwarded<T>`) lives in [core/proxy/box.d.ts](src/lib/core/proxy/box.d.ts) only. No equivalent on no-proxy side: `FastBox<T>` = only public name. `FastBoxed<T>` = deprecated alias removed in 1.0.0. Do not introduce higher-kinded helper for these names, TypeScript not support HKT and older `BaseBoxed<T, B>` definition with `B<T>` not type-check.
 
 ### How the Box proxy works
 
@@ -130,7 +130,7 @@ Transparent-forwarding shape (`Boxed<T> = Box<T> & Forwarded<T>`) lives in [core
 
 - `del()` typed `del(this: undefined extends T ? this : never): void`. `Box<number>.del()` = TypeScript error. `Box<unknown>.del()` and `Box<any>.del()` work because both include `undefined`. Polymorphic `this` constraint apply to `FastBox` and any subclass too.
 - `Boxed<T>` = `Box<T> & ForwardShape<T>` where `ForwardShape<T>` resolve to callable signature for function `T`, object surface for object `T`, `unknown` for primitives. Object and array properties forward; primitives keep only `Box<T>` surface (type narrow for safety, runtime forwarding still work).
-- No `FastBoxed<T>` alias as of 0.3.0. `FastBox<T>` = only public no-proxy name. `fastbox(...)` factory and `FastBoxedMap` / `FastBoxedSet` types resolve to `FastBox<T>` directly.
+- No `FastBoxed<T>` alias as of 1.0.0. `FastBox<T>` = only public no-proxy name. `fastbox(...)` factory and `FastBoxedMap` / `FastBoxedSet` types resolve to `FastBox<T>` directly.
 - Type guards return `this is this & BoxCell<X>`. Narrow from `Box<unknown>` and from union types correctly while preserve calling subclass type.
 
 ### Test infrastructure
