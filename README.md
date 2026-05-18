@@ -488,7 +488,7 @@ function rename(u: Box<{ name: string }>, name: string) {
 rename(user, 'Grace');
 ```
 
-`FastBox<T>` is the only public name on the no-proxy side. `fastbox(...)`, `FastBoxedMap`, and `FastBoxedSet` all return or resolve to `FastBox<T>` directly. (The `FastBoxed<T>` alias deprecated in `0.2.2` is removed in `0.3.0`. Migration: rename to `FastBox<T>`; the two were assignment-compatible.)
+`FastBox<T>` is the only public name on the no-proxy side. `fastbox(...)`, `FastBoxedMap`, and `FastBoxedSet` all return or resolve to `FastBox<T>` directly. (The `FastBoxed<T>` alias deprecated in `0.2.2` is removed in `1.0.0`. Migration: rename to `FastBox<T>`; the two were assignment-compatible.)
 
 ## Patterns and pitfalls
 
